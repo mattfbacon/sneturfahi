@@ -1,0 +1,12 @@
+[package]
+edition = "2021"
+name = "sneturfahi"
+version = "0.1.0"
+
+[dependencies]
+debug-rule = { path = "debug-rule" }
+log = "0.4"
+thiserror = "1"
+
+[dev-dependencies]
+simplelog = "0.12"

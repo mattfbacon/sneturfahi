@@ -144,9 +144,11 @@ fn eof(input: &str) -> Option<(&str, &str)> {
 
 fn one_of<'chs>(chs: &'chs str) -> impl (for<'a> Fn(&'a str) -> ParseResult<'a>) + 'chs {
 	move |input| {
-		let first = input.chars().next()?;
+		let mut chars_orig = input.chars();
+		let first = chars_orig.by_ref().filter(|&ch| ch != ',').next()?;
+		let remaining_offset = chars_orig.as_str().as_ptr() as usize - input.as_ptr() as usize;
 		if chs.contains(first) {
-			Some(input.split_at(first.len_utf8()))
+			Some(input.split_at(remaining_offset))
 		} else {
 			None
 		}
@@ -184,19 +186,21 @@ fn repeat(min: usize, parser: impl_parse!()) -> impl_parse!() {
 	}
 }
 
+/*
 fn eat_commas(input: &str) -> &str {
 	let num_commas = input.chars().take_while(|&ch| ch == ',').count();
 	&input[num_commas..]
 }
+*/
 
 fn h(input: &str) -> ParseResult<'_> {
-	one_of("'h")(eat_commas(input)).and_peek(nucleus)
+	one_of("'h")(input).and_peek(nucleus)
 }
 
 macro_rules! consonant_rule {
 	($name:ident, $one_ofs:expr $(, $nots:ident)*) => {
 		fn $name(input: &str) -> ParseResult<'_> {
-			one_of($one_ofs)(eat_commas(input)).and_not(or![h, glide, $name $(, $nots)*])
+			one_of($one_ofs)(input).and_not(or![h, glide, $name $(, $nots)*])
 		}
 	};
 }
@@ -227,76 +231,61 @@ group!(unvoiced: [c, f, k, p, s, t, x]);
 group!(consonant: [voiced, unvoiced, syllabic]);
 
 fn other(input: &str) -> ParseResult<'_> {
-	let mut chars = input.chars().filter(|&ch| ch != ',');
-	match chars.next()? {
-		'p' | 'k' | 'f' | 'x' | 'b' | 'g' | 'v' | 'm' => Some(input.split_at(1)),
-		'n' => Some(input.split_at(1)).and_not(liquid),
-		't' | 'd' => Some(input.split_at(1)).and_not(l),
-		_ => None,
-	}
+	or![
+		p,
+		k,
+		f,
+		x,
+		b,
+		g,
+		v,
+		m,
+		seq![n, not(liquid)],
+		seq![or![t, d], not(l)]
+	](input)
 }
 
 fn sibilant(input: &str) -> ParseResult<'_> {
-	let mut chars = input.chars().filter(|&ch| ch != ',');
-	match chars.next()? {
-		'c' => Some(input.split_at(1)),
-		's' => Some(input.split_at(1)).and_not(x),
-		'j' | 'z' => Some(input.split_at(1)).and_not(n).and_not(liquid),
-		_ => None,
-	}
+	or![c, seq![s, not(x)], seq![or![j, z], not(n), not(liquid)],](input)
 }
 
 fn affricate(input: &str) -> ParseResult<'_> {
-	let mut chars = input.chars().filter(|&ch| ch != ',');
-	let valid_second = match chars.next()? {
-		't' => "cs",
-		'd' => "jz",
-		_ => return None,
-	};
-	chars
-		.next()
-		.filter(|&second| valid_second.contains(second))?;
-	Some(input.split_at(2))
+	or![seq![t, or![c, s]], seq![d, or![j, z]]](input)
 }
 
 macro_rules! vowel_rule {
 	($name:ident, $one_ofs:expr) => {
 		fn $name(input: &str) -> ParseResult<'_> {
-			one_of($one_ofs)(eat_commas(input))
+			one_of($one_ofs)(input)
 		}
 	};
 }
 
-/*
 vowel_rule!(a, "aA");
 vowel_rule!(e, "eE");
 vowel_rule!(i, "iI");
 vowel_rule!(o, "oO");
 vowel_rule!(u, "uU");
-*/
 vowel_rule!(y, "yY");
 
 #[debug_rule]
 fn vowel(input: &str) -> ParseResult<'_> {
-	one_of("aAeEiIoOuUyY")(eat_commas(input)).and_not(nucleus)
+	one_of("aAeEiIoOuUyY")(input).and_not(nucleus)
+}
+
+#[test]
+fn test_vowel() {
+	assert!(vowel(",,,,,a").is_some());
 }
 
 #[debug_rule]
 fn diphthong(input: &str) -> ParseResult<'_> {
-	let mut chars = input.chars().filter(|&ch| ch != ',');
-	let valid_second = match chars.next()? {
-		'a' => "iu",
-		'e' => "i",
-		'o' => "i",
-		_ => return None,
-	};
-	let second = chars
-		.next()
-		.filter(|&second| valid_second.contains(second))?;
-	if chars.next().map_or(false, |third| second == third) {
-		return None;
-	}
-	Some(input.split_at(2)).and_not(nucleus)
+	or![seq![a, or![i, u]], seq![or![e, o], i]](input).and_not(nucleus)
+}
+
+#[test]
+fn test_diphthong() {
+	assert!(diphthong(",,,,,a,,,,i").is_some());
 }
 
 #[debug_rule]
@@ -305,11 +294,11 @@ pub fn nucleus(input: &str) -> ParseResult<'_> {
 }
 
 fn glide(input: &str) -> ParseResult<'_> {
-	one_of("iIuU")(eat_commas(input)).and_peek(nucleus)
+	one_of("iIuU")(input).and_peek(nucleus)
 }
 
 fn digit(input: &str) -> ParseResult<'_> {
-	one_of("023456789")(eat_commas(input)).and_not(or![h, nucleus])
+	one_of("023456789")(input).and_not(or![h, nucleus])
 }
 
 #[debug_rule]
@@ -354,7 +343,7 @@ fn onset(input: &str) -> ParseResult<'_> {
 }
 
 fn stressed(input: &str) -> ParseResult<'_> {
-	seq![onset, |input| one_of("AEIOU")(eat_commas(input))](input)
+	seq![onset, one_of("AEIOU")](input)
 }
 
 #[debug_rule]
@@ -713,6 +702,12 @@ pub fn lujvo(input: &str) -> ParseResult<'_> {
 	](input)
 }
 
+/// preconditions: decomposed up to this point (thus implying `!cmavo`), and `!gismu !fuhivla`
+#[debug_rule]
+pub fn lujvo_minimal(input: &str) -> ParseResult<'_> {
+	seq![repeat(0, initial_rafsi), brivla_core](input)
+}
+
 #[debug_rule]
 pub fn brivla(input: &str) -> ParseResult<'_> {
 	or![gismu, fuhivla, lujvo](input)
@@ -726,10 +721,12 @@ pub fn lojban_word(input: &str) -> ParseResult<'_> {
 #[debug_rule]
 pub fn cmavo(input: &str) -> ParseResult<'_> {
 	not!(cmevla(input));
-	cmavo_not_cvcy_lujvo(input).and_peek(post_word)
+	cmavo_minimal(input).and_peek(post_word)
 }
 
-pub fn cmavo_not_cvcy_lujvo(input: &str) -> ParseResult<'_> {
+/// preconditions: !cmevla
+/// postconditions: &post_word
+pub fn cmavo_minimal(input: &str) -> ParseResult<'_> {
 	not!(cvcy_lujvo(input));
 	cmavo_form(input)
 }

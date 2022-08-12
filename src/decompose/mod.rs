@@ -105,5 +105,7 @@ mod test {
 		cmevla_tricky: "alobrodan" => ["alobrodan"],
 		commas: ",,,m,,,i,,,n,,a,,,j,,,i,,,m,,,p,,,e,,," => [",,,m,,,i", ",,,n,,a", ",,,j,,,i,,,m,,,p,,,e"],
 		srasu: include_str!("srasu.txt") => include!("srasu.txt.expected"),
+		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
+		janbe: "tanjelavi" => ["tanjelavi"],
 	}
 }

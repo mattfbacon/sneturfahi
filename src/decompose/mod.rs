@@ -7,7 +7,6 @@ fn split_or_trim_condition(ch: char) -> bool {
 }
 
 mod rules;
-// mod rules_old;
 
 fn is_consonant(ch: char) -> bool {
 	"bcdfgjklmnprstvxz".contains(ch)

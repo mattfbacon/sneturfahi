@@ -1,5 +1,7 @@
 fn main() {
-	// simplelog::SimpleLogger::init(log::LevelFilter::Trace, simplelog::Config::default()).unwrap();
+	if std::env::var_os("VERBOSE").is_some() {
+		simplelog::SimpleLogger::init(log::LevelFilter::Trace, simplelog::Config::default()).unwrap();
+	}
 
 	let action = std::env::args().nth(1).expect("need action");
 	match action.as_str() {

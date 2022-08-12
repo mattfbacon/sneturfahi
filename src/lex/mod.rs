@@ -1,8 +1,7 @@
-#[derive(Debug)]
-pub enum Token<'a> {
-	Dummy(&'a str),
-}
+pub mod token;
 
-pub fn lex(_input: &str) -> Vec<Token<'_>> {
+pub use token::Token;
+
+pub fn lex(_input: &str) -> Vec<Token> {
 	todo!()
 }

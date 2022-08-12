@@ -1,5 +1,7 @@
 // based loosely on https://github.com/lojban/camxes-py/blob/690706f50abf080d746c08da641c11905334298c/camxes_py/parsers/camxes_ilmen.peg
 
+use crate::span::Span;
+
 fn split_or_trim_condition(ch: char) -> bool {
 	".\t\n\r?! ".contains(ch)
 }
@@ -15,7 +17,7 @@ fn simple_cmevla_check(input: &str) -> bool {
 	is_consonant(input.chars().rev().filter(|&ch| ch != ',').next().unwrap())
 }
 
-pub fn decompose<'a>(input: &'a str) -> impl Iterator<Item = &'a str> {
+pub fn decompose<'a>(input: &'a str) -> impl Iterator<Item = Span<'a>> {
 	let generator = move || {
 		log::debug!("decomposing {input:?}");
 
@@ -27,7 +29,7 @@ pub fn decompose<'a>(input: &'a str) -> impl Iterator<Item = &'a str> {
 
 			if simple_cmevla_check(input) {
 				log::trace!("chunk was cmevla, not continuing with decomposition");
-				yield chunk;
+				yield Span::from_slice(input);
 				continue 'chunks;
 			}
 			log::trace!("chunk was not a cmevla, continuing with decomposition");
@@ -55,14 +57,14 @@ pub fn decompose<'a>(input: &'a str) -> impl Iterator<Item = &'a str> {
 				}
 
 				log::trace!("popped cmavo {cmavo:?} off, leaving {new_rest:?}");
-				yield cmavo;
+				yield Span::from_embedded_slice(input.as_ptr(), cmavo);
 				rest = new_rest;
 			}
 
 			rest = rest.trim_end_matches(|ch| ch == ',');
 			if !rest.is_empty() {
 				log::trace!("feeding remaining input {rest:?}");
-				yield rest;
+				yield Span::from_embedded_slice(input.as_ptr(), rest);
 			}
 		}
 	};
@@ -75,7 +77,10 @@ mod test {
 		($name:ident, $raw:expr, $expected:expr) => {
 			#[test]
 			fn $name() {
-				let result: Vec<_> = super::decompose($raw).collect();
+				let raw = $raw;
+				let result: Vec<_> = super::decompose(raw)
+					.map(|span| span.slice(raw).unwrap())
+					.collect();
 				assert_eq!(result, &$expected as &[&str]);
 			}
 		};

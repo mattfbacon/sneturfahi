@@ -15,57 +15,58 @@ fn simple_cmevla_check(input: &str) -> bool {
 	is_consonant(input.chars().rev().filter(|&ch| ch != ',').next().unwrap())
 }
 
-pub fn decompose<'a>(input: &'a str) -> Vec<&'a str> {
-	log::debug!("decomposing {input:?}");
+pub fn decompose<'a>(input: &'a str) -> impl Iterator<Item = &'a str> {
+	let generator = move || {
+		log::debug!("decomposing {input:?}");
 
-	let mut ret = Vec::new();
+		'chunks: for chunk in input
+			.split(split_or_trim_condition)
+			.filter(|chunk| !chunk.is_empty())
+		{
+			log::trace!("chunk of input is {chunk:?}");
 
-	'chunks: for chunk in input
-		.split(split_or_trim_condition)
-		.filter(|chunk| !chunk.is_empty())
-	{
-		log::trace!("chunk of input is {chunk:?}");
+			if simple_cmevla_check(input) {
+				log::trace!("chunk was cmevla, not continuing with decomposition");
+				yield chunk;
+				continue 'chunks;
+			}
+			log::trace!("chunk was not a cmevla, continuing with decomposition");
 
-		if simple_cmevla_check(input) {
-			log::trace!("chunk was cmevla, not continuing with decomposition");
-			ret.push(chunk);
-			continue 'chunks;
-		}
-		log::trace!("chunk was not a cmevla, continuing with decomposition");
-
-		fn post_word(input: &str) -> bool {
-			rules::nucleus(input).is_none()
-				&& (rules::gismu(input).is_some()
-					|| rules::fuhivla(input).is_some()
-					|| rules::lujvo_minimal(input).is_some()
-					|| rules::cmavo_minimal(input).is_some())
-		}
-
-		let mut rest = chunk;
-		'cmavo: while let Some((cmavo, new_rest)) = rules::cmavo_minimal(rest) {
-			log::trace!("considering splitting into ({cmavo:?}, {new_rest:?}), pending post_word check");
-			if new_rest.is_empty() || new_rest.chars().all(|ch| ch == ',') {
-				break 'cmavo;
+			fn post_word(input: &str) -> bool {
+				rules::nucleus(input).is_none()
+					&& (rules::gismu(input).is_some()
+						|| rules::fuhivla(input).is_some()
+						|| rules::lujvo_minimal(input).is_some()
+						|| rules::cmavo_minimal(input).is_some())
 			}
 
-			if !post_word(new_rest) {
-				log::trace!("splitting into ({cmavo:?}, {new_rest:?}) would leave invalid post_word, so not continuing with decomposition");
-				break 'cmavo;
+			let mut rest = chunk;
+			'cmavo: while let Some((cmavo, new_rest)) = rules::cmavo_minimal(rest) {
+				log::trace!(
+					"considering splitting into ({cmavo:?}, {new_rest:?}), pending post_word check"
+				);
+				if new_rest.is_empty() || new_rest.chars().all(|ch| ch == ',') {
+					break 'cmavo;
+				}
+
+				if !post_word(new_rest) {
+					log::trace!("splitting into ({cmavo:?}, {new_rest:?}) would leave invalid post_word, so not continuing with decomposition");
+					break 'cmavo;
+				}
+
+				log::trace!("popped cmavo {cmavo:?} off, leaving {new_rest:?}");
+				yield cmavo;
+				rest = new_rest;
 			}
 
-			log::trace!("popped cmavo {cmavo:?} off, leaving {new_rest:?}");
-			ret.push(cmavo);
-			rest = new_rest;
+			rest = rest.trim_end_matches(|ch| ch == ',');
+			if !rest.is_empty() {
+				log::trace!("feeding remaining input {rest:?}");
+				yield rest;
+			}
 		}
-
-		rest = rest.trim_end_matches(|ch| ch == ',');
-		if !rest.is_empty() {
-			log::trace!("feeding remaining input {rest:?}");
-			ret.push(rest);
-		}
-	}
-
-	ret
+	};
+	std::iter::from_generator(generator)
 }
 
 #[cfg(test)]
@@ -74,7 +75,7 @@ mod test {
 		($name:ident, $raw:expr, $expected:expr) => {
 			#[test]
 			fn $name() {
-				let result = super::decompose($raw);
+				let result: Vec<_> = super::decompose($raw).collect();
 				assert_eq!(result, &$expected as &[&str]);
 			}
 		};

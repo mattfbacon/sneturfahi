@@ -11,7 +11,7 @@ fn main() {
 		"decompose-stdin" => {
 			let mut input = String::new();
 			std::io::Read::read_to_string(&mut std::io::stdin().lock(), &mut input).unwrap();
-			let decomposed = sneturfahi::decompose(&input);
+			let decomposed: Vec<_> = sneturfahi::decompose(&input).collect();
 			println!("Decomposed: {decomposed:?}");
 		}
 		_ => panic!("unknown action"),
@@ -32,7 +32,7 @@ fn repl(mut callback: impl FnMut(&str)) {
 
 fn decompose() {
 	repl(|input| {
-		let decomposed = sneturfahi::decompose(input);
+		let decomposed: Vec<_> = sneturfahi::decompose(input).collect();
 		println!("Decomposed: {decomposed:?}");
 	})
 }

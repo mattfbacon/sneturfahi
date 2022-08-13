@@ -99,7 +99,7 @@ mod test {
 		tosmabru: "tosmabru" => ["to", "smabru"],
 		tosmabru2: "tosymabru" => ["tosymabru"],
 		tosmabru3: "totosymabru" => ["to", "tosymabru"],
-		how_many: "totototosymabru" => ["to", "to", "to", "tosymabru"], // this test is very slow
+		how_many: "totototosymabru" => ["to", "to", "to", "tosymabru"],
 		fuvi: "fuvi" => ["fu", "vi"],
 		sekihu: "seki'u" => ["se", "ki'u"],
 		setese: "setese" => ["se", "te", "se"],

@@ -1,5 +1,7 @@
 #![feature(generators, generator_trait, iter_from_generator)]
 
+mod rules;
+
 pub mod decompose;
 pub use decompose::decompose;
 

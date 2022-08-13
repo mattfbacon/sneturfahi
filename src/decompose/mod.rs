@@ -1,12 +1,11 @@
 // based loosely on https://github.com/lojban/camxes-py/blob/690706f50abf080d746c08da641c11905334298c/camxes_py/parsers/camxes_ilmen.peg
 
+use crate::rules;
 use crate::span::Span;
 
 fn split_or_trim_condition(ch: char) -> bool {
 	".\t\n\r?! ".contains(ch)
 }
-
-mod rules;
 
 fn is_consonant(ch: char) -> bool {
 	"bcdfgjklmnprstvxz".contains(ch)

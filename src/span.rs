@@ -1,12 +1,23 @@
+use std::fmt::{self, Debug, Formatter};
 use std::marker::PhantomData;
 
 pub type Location = u32;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Span<'a> {
 	start: Location,
 	end: Location,
 	belongs_to: PhantomData<&'a str>,
+}
+
+// XXX: use `#[debug(skip)]` if/when it lands
+impl Debug for Span<'_> {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		f.debug_struct("Span")
+			.field("start", &self.start)
+			.field("end", &self.end)
+			.finish()
+	}
 }
 
 impl<'a> Span<'a> {

@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use crate::span::Span;
 
 mod classify;
@@ -9,33 +11,55 @@ pub use token::{Selmaho, Token};
 
 #[derive(Debug, Clone, Copy, thiserror::Error)]
 pub enum Error<'input> {
-	#[error("expected separator after zoi but end of input found")]
-	ZoiMissingSeparator { zoi_span: Span<'input> },
-	#[error("zoi quote is unclosed")]
-	ZoiUnclosed {
-		zoi_span: Span<'input>,
+	#[error("expected separator after delimited quote initiator but end of input found")]
+	DelimitedQuoteMissingSeparator { initiator_span: Span<'input> },
+	#[error("delimited quote is unclosed")]
+	DelimitedQuoteUnclosed {
+		initiator_span: Span<'input>,
 		starting_delimiter_span: Span<'input>,
 	},
+	#[error("expected content of pause-delimited quote but end of input found")]
+	PauseDelimitedQuoteEof { initiator_span: Span<'input> },
 }
 
-type LexWords<'input> = impl Iterator<Item = Span<'input>>;
+#[derive(Clone, Copy)]
+struct DelimitedQuoteState<'input> {
+	how_many: NonZeroU8,
+	initiator_span: Span<'input>,
+	is_first: bool,
+	starting_delimiter_span: Span<'input>,
+}
 
-enum LexerState<'input> {
+impl<'input> DelimitedQuoteState<'input> {
+	fn next(self, ending_delimiter_span: Span<'input>) -> Option<Self> {
+		self
+			.how_many
+			.get()
+			.checked_sub(1)
+			.and_then(NonZeroU8::new)
+			.map(|new_how_many| Self {
+				how_many: new_how_many,
+				initiator_span: self.initiator_span,
+				is_first: false,
+				starting_delimiter_span: ending_delimiter_span,
+			})
+	}
+}
+
+enum State<'input> {
 	Normal,
-	ZoiQuote {
-		zoi_span: Span<'input>,
-		starting_delimiter_span: Span<'input>,
-	},
-	TwoMoreTokens([Token<'input>; 2]),
-	OneMoreToken(Token<'input>),
+	DelimitedQuote(DelimitedQuoteState<'input>),
+	TwoMoreTokensThen([Token<'input>; 2], Option<DelimitedQuoteState<'input>>),
+	OneMoreTokenThen(Token<'input>, Option<DelimitedQuoteState<'input>>),
+	PauseDelimitedQuote { initiator_span: Span<'input> },
 	Errored,
 }
 
 struct Lexer<'input> {
-	words: LexWords<'input>,
+	words: crate::decompose::Decomposer<'input>,
 	input: &'input str,
 	config: Config,
-	state: LexerState<'input>,
+	state: State<'input>,
 }
 
 impl<'input> Iterator for Lexer<'input> {
@@ -43,21 +67,31 @@ impl<'input> Iterator for Lexer<'input> {
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.state {
-			LexerState::Normal => {
+			State::Normal => {
 				let span = self.words.next()?;
 				let word = span.slice(self.input).unwrap();
 				let (selmaho, experimental) = Selmaho::classify(word);
 				match selmaho {
-					Selmaho::Zoi => {
-						self.state = LexerState::ZoiQuote {
-							zoi_span: span,
+					Selmaho::Zoi | Selmaho::Muhoi | Selmaho::Sohehai => {
+						let how_many = if selmaho == Selmaho::Sohehai { 2 } else { 1 };
+						self.state = State::DelimitedQuote(DelimitedQuoteState {
+							how_many: NonZeroU8::new(how_many).unwrap(),
+							initiator_span: span,
+							is_first: true,
 							starting_delimiter_span: match self.words.next() {
 								Some(span) => span,
 								None => {
-									self.state = LexerState::Errored;
-									return Some(Err(Error::ZoiMissingSeparator { zoi_span: span }));
+									self.state = State::Errored;
+									return Some(Err(Error::DelimitedQuoteMissingSeparator {
+										initiator_span: span,
+									}));
 								}
 							},
+						});
+					}
+					Selmaho::Mehoi | Selmaho::Zohoi | Selmaho::Dohoi => {
+						self.state = State::PauseDelimitedQuote {
+							initiator_span: span,
 						};
 					}
 					_ => (),
@@ -68,61 +102,93 @@ impl<'input> Iterator for Lexer<'input> {
 					span,
 				}))
 			}
-			LexerState::ZoiQuote {
-				starting_delimiter_span,
-				zoi_span,
-			} => {
-				let mut words_no_decompose = starting_delimiter_span
-					.slice_after(self.input)
-					.unwrap()
-					.split(crate::decompose::split_or_trim_condition)
-					.filter(|chunk| !chunk.is_empty());
+			State::DelimitedQuote(
+				quote_state @ DelimitedQuoteState {
+					is_first,
+					starting_delimiter_span,
+					initiator_span,
+					how_many: _,
+				},
+			) => {
+				let mut start_of_quote = None;
+				let mut end_of_quote = None;
 				Some(loop {
-					if let Some(possible_ending_delimiter) = words_no_decompose.next() {
+					if let Some(word_span) = self.words.next_no_decomposition() {
+						let possible_ending_delimiter = word_span.slice(self.input).unwrap();
 						if self.config.zoi_delimiter_comparison.compare(
 							starting_delimiter_span.slice(self.input).unwrap(),
 							possible_ending_delimiter,
 						) {
-							let ending_delimiter_span =
-								Span::from_embedded_slice(self.input.as_ptr(), possible_ending_delimiter);
+							let ending_delimiter_span = word_span;
 							let start_token = Token {
 								experimental: false,
 								span: starting_delimiter_span,
 								selmaho: Selmaho::ZoiDelimiter,
 							};
-							let text_token = Token {
-								experimental: false,
-								span: Span::between(starting_delimiter_span, ending_delimiter_span),
-								selmaho: Selmaho::AnyText,
-							};
+							let text_token = (|| {
+								Some(Token {
+									experimental: false,
+									span: Span::new(self.input, start_of_quote?, end_of_quote?),
+									selmaho: Selmaho::AnyText,
+								})
+							})();
 							let end_token = Token {
 								experimental: false,
 								span: ending_delimiter_span,
 								selmaho: Selmaho::ZoiDelimiter,
 							};
-							self.state = LexerState::TwoMoreTokens([text_token, end_token]);
-							self.input = ending_delimiter_span.slice_after(self.input).unwrap();
-							self.words = crate::decompose(self.input);
-							break Ok(start_token);
+							let next_quote_state = quote_state.next(ending_delimiter_span);
+							if is_first {
+								self.state = text_token.map_or(
+									State::OneMoreTokenThen(end_token, next_quote_state),
+									|text_token| State::TwoMoreTokensThen([text_token, end_token], next_quote_state),
+								);
+								break Ok(start_token);
+							} else if let Some(text_token) = text_token {
+								self.state = State::OneMoreTokenThen(end_token, next_quote_state);
+								break Ok(text_token);
+							} else {
+								self.state = next_quote_state.map_or(State::Normal, State::DelimitedQuote);
+								break Ok(end_token);
+							}
+						} else {
+							let quote_part = word_span;
+							start_of_quote.get_or_insert(quote_part.start());
+							end_of_quote = Some(quote_part.end());
 						}
 					} else {
-						self.state = LexerState::Errored;
-						break Err(Error::ZoiUnclosed {
-							zoi_span,
+						self.state = State::Errored;
+						break Err(Error::DelimitedQuoteUnclosed {
+							initiator_span,
 							starting_delimiter_span,
 						});
 					}
 				})
 			}
-			LexerState::TwoMoreTokens([text_token, end_token]) => {
-				self.state = LexerState::OneMoreToken(end_token);
+			State::TwoMoreTokensThen([text_token, end_token], then) => {
+				self.state = State::OneMoreTokenThen(end_token, then);
 				Some(Ok(text_token))
 			}
-			LexerState::OneMoreToken(end_token) => {
-				self.state = LexerState::Normal;
+			State::OneMoreTokenThen(end_token, then) => {
+				self.state = then.map_or(State::Normal, State::DelimitedQuote);
 				Some(Ok(end_token))
 			}
-			LexerState::Errored => None,
+			State::PauseDelimitedQuote { initiator_span } => {
+				let quoted_text_span = match self.words.next_no_decomposition() {
+					Some(word) => word,
+					None => {
+						self.state = State::Errored;
+						return Some(Err(Error::PauseDelimitedQuoteEof { initiator_span }));
+					}
+				};
+				self.state = State::Normal;
+				Some(Ok(Token {
+					experimental: false,
+					selmaho: Selmaho::AnyText,
+					span: quoted_text_span,
+				}))
+			}
+			State::Errored => None,
 		}
 	}
 }
@@ -135,7 +201,7 @@ pub fn lex<'input, 'config>(
 		words: crate::decompose(input),
 		input,
 		config,
-		state: LexerState::Normal,
+		state: State::Normal,
 	}
 }
 
@@ -162,7 +228,13 @@ mod test {
 
 	tests! {
 		// copy the behavior of other parsers
-		do_decompose_starting_delimiter: "zoi fuvi text fu" => [Zoi("zoi"), ZoiDelimiter("fu"), AnyText("vi text "), ZoiDelimiter("fu")],
-		dont_decompose_in_quotes: "zoi gy gygy gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" gygy "), ZoiDelimiter("gy")],
+		do_decompose_starting_delimiter: "zoi fuvi text fu" => [Zoi("zoi"), ZoiDelimiter("fu"), AnyText("vi text"), ZoiDelimiter("fu")],
+		dont_decompose_in_quotes: "zoi gy gygy gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText("gygy"), ZoiDelimiter("gy")],
+		basic: "fuvi zoi gy broda gy fuvi" => [Fa("fu"), Va("vi"), Zoi("zoi"), ZoiDelimiter("gy"), AnyText("broda"), ZoiDelimiter("gy"), Fa("fu"), Va("vi")],
+		pause_delimited_quotes: "zo'oi abcdef la'oi abcdef me'oi abcdef ra'oi abcdef do'oi abcdef" => [Zohoi("zo'oi"), AnyText("abcdef"), Zohoi("la'oi"), AnyText("abcdef"), Mehoi("me'oi"), AnyText("abcdef"), Zohoi("ra'oi"), AnyText("abcdef"), Dohoi("do'oi"), AnyText("abcdef")],
+		pause_delimited_delimited_by_actual_pauses: "zo'oi.abcdef.la'oi.abcdef." => [Zohoi("zo'oi"), AnyText("abcdef"), Zohoi("la'oi"), AnyText("abcdef")],
+		sohehai: "so'e'ai gy. cipna .gy. sipna .gy" => [Sohehai("so'e'ai"), ZoiDelimiter("gy"), AnyText("cipna"), ZoiDelimiter("gy"), AnyText("sipna"), ZoiDelimiter("gy")],
+		empty_quote: "zoi gy gy" => [Zoi("zoi"), ZoiDelimiter("gy"), ZoiDelimiter("gy")],
+		empty_quote2: "zoi gy.gy" => [Zoi("zoi"), ZoiDelimiter("gy"), ZoiDelimiter("gy")],
 	}
 }

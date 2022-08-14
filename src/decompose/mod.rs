@@ -12,61 +12,148 @@ fn is_consonant(ch: char) -> bool {
 }
 
 fn simple_cmevla_check(input: &str) -> bool {
-	is_consonant(input.chars().rev().filter(|&ch| ch != ',').next().unwrap())
+	input
+		.chars()
+		.rev()
+		.filter(|&ch| ch != ',')
+		.next()
+		.map_or(false, is_consonant)
 }
 
-pub fn decompose<'a>(input: &'a str) -> impl Iterator<Item = Span<'a>> {
-	let generator = move || {
-		log::debug!("decomposing {input:?}");
+type Input<'a> = impl Iterator<Item = &'a str>;
 
-		'chunks: for chunk in input
-			.split(split_or_trim_condition)
-			.filter(|chunk| !chunk.is_empty())
-		{
-			log::trace!("chunk of input is {chunk:?}");
+#[derive(Clone, Copy)]
+enum State<'a> {
+	Normal,
+	Decomposing { rest: &'a str },
+}
 
-			if simple_cmevla_check(input) {
-				log::trace!("chunk was cmevla, not continuing with decomposition");
-				yield Span::from_slice(input);
-				continue 'chunks;
-			}
-			log::trace!("chunk was not a cmevla, continuing with decomposition");
+pub struct Decomposer<'a> {
+	input_start: *const u8,
+	split: Input<'a>,
+	state: State<'a>,
+}
 
-			fn post_word(input: &str) -> bool {
-				rules::nucleus(input).is_none()
-					&& (rules::gismu(input).is_some()
-						|| rules::fuhivla(input).is_some()
-						|| rules::lujvo_minimal(input).is_some()
-						|| rules::cmavo_minimal(input).is_some())
-			}
+#[derive(Clone, Copy)]
+enum NextNormalResult<'a> {
+	YieldDirectly(Span<'a>),
+	NeedsDecomposition(&'a str),
+}
 
-			let mut rest = chunk;
-			'cmavo: while let Some((cmavo, new_rest)) = rules::cmavo_minimal(rest) {
-				log::trace!(
-					"considering splitting into ({cmavo:?}, {new_rest:?}), pending post_word check"
-				);
-				if new_rest.is_empty() || new_rest.chars().all(|ch| ch == ',') {
-					break 'cmavo;
-				}
+#[derive(Clone, Copy)]
+enum NextDecomposingResult<'a> {
+	Continue {
+		new_rest: &'a str,
+		step_result: Span<'a>,
+	},
+	Break(Span<'a>),
+	BreakWithNext,
+}
 
-				if !post_word(new_rest) {
-					log::trace!("splitting into ({cmavo:?}, {new_rest:?}) would leave invalid post_word, so not continuing with decomposition");
-					break 'cmavo;
-				}
+impl<'a> Decomposer<'a> {
+	fn post_word(input: &str) -> bool {
+		rules::nucleus(input).is_none()
+			&& (rules::gismu(input).is_some()
+				|| rules::fuhivla(input).is_some()
+				|| rules::lujvo_minimal(input).is_some()
+				|| rules::cmavo_minimal(input).is_some())
+	}
 
-				log::trace!("popped cmavo {cmavo:?} off, leaving {new_rest:?}");
-				yield Span::from_embedded_slice(input.as_ptr(), cmavo);
-				rest = new_rest;
-			}
+	fn next_normal(&self, chunk: &'a str) -> NextNormalResult<'a> {
+		log::trace!("chunk of input is {chunk:?}");
+		if simple_cmevla_check(chunk) {
+			log::trace!("chunk was cmevla, yielding and moving to next chunk");
+			NextNormalResult::YieldDirectly(Span::from_embedded_slice(self.input_start, chunk))
+		} else {
+			log::trace!("chunk was not a cmevla, continuing with decomposition of chunk");
+			NextNormalResult::NeedsDecomposition(chunk)
+		}
+	}
 
-			rest = rest.trim_end_matches(|ch| ch == ',');
-			if !rest.is_empty() {
-				log::trace!("feeding remaining input {rest:?}");
-				yield Span::from_embedded_slice(input.as_ptr(), rest);
+	fn next_decomposing(&self, rest: &'a str) -> NextDecomposingResult<'a> {
+		if let Some((cmavo, new_rest)) = rules::cmavo_minimal(rest) {
+			log::trace!("considering splitting into ({cmavo:?}, {new_rest:?}), pending post_word check");
+			if !new_rest.is_empty() && !new_rest.chars().all(|ch| ch == ',') && Self::post_word(new_rest)
+			{
+				return NextDecomposingResult::Continue {
+					new_rest,
+					step_result: Span::from_embedded_slice(self.input_start, cmavo),
+				};
 			}
 		}
-	};
-	std::iter::from_generator(generator)
+
+		let rest = rest.trim_end_matches(|ch| ch == ',');
+		if !rest.is_empty() {
+			NextDecomposingResult::Break(Span::from_embedded_slice(self.input_start, rest))
+		} else {
+			NextDecomposingResult::BreakWithNext
+		}
+	}
+}
+
+impl<'a> Iterator for Decomposer<'a> {
+	type Item = Span<'a>;
+
+	fn next(&mut self) -> Option<Span<'a>> {
+		loop {
+			match self.state {
+				State::Normal => match {
+					let chunk = self.split.next()?;
+					self.next_normal(chunk)
+				} {
+					NextNormalResult::YieldDirectly(span) => break Some(span),
+					NextNormalResult::NeedsDecomposition(chunk) => {
+						self.state = State::Decomposing { rest: chunk };
+					}
+				},
+				State::Decomposing { rest } => match self.next_decomposing(rest) {
+					NextDecomposingResult::Continue {
+						new_rest,
+						step_result,
+					} => {
+						self.state = State::Decomposing { rest: new_rest };
+						break Some(step_result);
+					}
+					NextDecomposingResult::Break(step_result) => {
+						self.state = State::Normal;
+						break Some(step_result);
+					}
+					NextDecomposingResult::BreakWithNext => {
+						self.state = State::Normal;
+					}
+				},
+			}
+		}
+	}
+}
+
+impl<'a> Decomposer<'a> {
+	pub fn next_no_decomposition(&mut self) -> Option<Span<'a>> {
+		match self.state {
+			State::Normal => self.split.next(),
+			State::Decomposing { rest } => {
+				self.state = State::Normal;
+				Some(rest)
+			}
+		}
+		.map(|chunk| Span::from_embedded_slice(self.input_start, chunk))
+	}
+}
+
+fn _assert_iterator<'a>() {
+	fn do_assert<'a, I: Iterator<Item = Span<'a>>>() {}
+	do_assert::<Decomposer<'a>>();
+}
+
+pub fn decompose<'a>(input: &'a str) -> Decomposer<'a> {
+	log::debug!("decomposing {input:?}");
+	Decomposer {
+		input_start: input.as_ptr(),
+		split: input
+			.split(split_or_trim_condition)
+			.filter(|chunk| !chunk.is_empty()),
+		state: State::Normal,
+	}
 }
 
 #[cfg(test)]
@@ -107,7 +194,10 @@ mod test {
 		slinkuhi: "loslinku'i" => ["loslinku'i"],
 		vowel_prefix: "alobroda" => ["a", "lo", "broda"],
 		cmevla_tricky: "alobrodan" => ["alobrodan"],
+		cmevla_tricky2: "zo alobrodan alobroda zo" => ["zo", "alobrodan", "a", "lo", "broda", "zo"],
 		commas: ",,,m,,,i,,,n,,a,,,j,,,i,,,m,,,p,,,e,,," => [",,,m,,,i", ",,,n,,a", ",,,j,,,i,,,m,,,p,,,e"],
+		// to test for avoiding stack-blowing recursion
+		all_commas: &std::iter::repeat(", ").take(100000).collect::<String>() => [],
 		srasu: include_str!("srasu.txt") => include!("srasu.txt.expected"),
 		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
 		janbe: "tanjelavi" => ["tanjelavi"],

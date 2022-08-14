@@ -111,5 +111,6 @@ mod test {
 		srasu: include_str!("srasu.txt") => include!("srasu.txt.expected"),
 		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
 		janbe: "tanjelavi" => ["tanjelavi"],
+		thrig: "mablabigerku" => ["ma", "blabigerku"],
 	}
 }

@@ -26,8 +26,8 @@ enum LexerState<'input> {
 		zoi_span: Span<'input>,
 		starting_delimiter_span: Span<'input>,
 	},
-	ZoiQuoteText([Token<'input>; 2]),
-	ZoiQuoteEnd(Token<'input>),
+	TwoMoreTokens([Token<'input>; 2]),
+	OneMoreToken(Token<'input>),
 }
 
 struct Lexer<'input> {
@@ -96,7 +96,7 @@ impl<'input> Iterator for Lexer<'input> {
 								span: ending_delimiter_span,
 								selmaho: Selmaho::ZoiDelimiter,
 							};
-							self.state = LexerState::ZoiQuoteText([text_token, end_token]);
+							self.state = LexerState::TwoMoreTokens([text_token, end_token]);
 							self.input = ending_delimiter_span.slice_after(self.input).unwrap();
 							self.words = crate::decompose(self.input);
 							break Ok(start_token);
@@ -109,11 +109,11 @@ impl<'input> Iterator for Lexer<'input> {
 					}
 				})
 			}
-			LexerState::ZoiQuoteText([text_token, end_token]) => {
-				self.state = LexerState::ZoiQuoteEnd(end_token);
+			LexerState::TwoMoreTokens([text_token, end_token]) => {
+				self.state = LexerState::OneMoreToken(end_token);
 				Some(Ok(text_token))
 			}
-			LexerState::ZoiQuoteEnd(end_token) => {
+			LexerState::OneMoreToken(end_token) => {
 				self.state = LexerState::Normal;
 				Some(Ok(end_token))
 			}

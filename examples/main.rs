@@ -32,7 +32,9 @@ fn repl(mut callback: impl FnMut(&str)) {
 
 fn decompose() {
 	repl(|input| {
-		let decomposed: Vec<_> = sneturfahi::decompose(input).collect();
+		let decomposed: Vec<_> = sneturfahi::decompose(input)
+			.map(|span| span.slice(input).unwrap())
+			.collect();
 		println!("Decomposed: {decomposed:?}");
 	})
 }

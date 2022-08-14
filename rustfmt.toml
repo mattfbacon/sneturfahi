@@ -1,5 +1,5 @@
 edition = "2021"
-hard_tabs = true
-tab_spaces = 2
 group_imports = "StdExternalCrate"
+hard_tabs = true
 imports_granularity = "Module"
+tab_spaces = 2

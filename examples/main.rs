@@ -39,7 +39,7 @@ fn decompose() {
 
 fn parse() {
 	repl(|input| {
-		let lexed = sneturfahi::lex(input.trim());
+		let lexed = sneturfahi::lex(input);
 		match sneturfahi::parse(lexed.into_iter()) {
 			Ok(ast) => println!("AST: {ast:#?}"),
 			Err(error) => println!("Error: {error:?}"),

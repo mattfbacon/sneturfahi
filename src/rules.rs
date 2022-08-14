@@ -133,7 +133,7 @@ impl ParseResultExt for ParseResult<'_> {
 	}
 }
 
-fn eof(input: &str) -> Option<(&str, &str)> {
+pub fn eof(input: &str) -> Option<(&str, &str)> {
 	if input.is_empty() {
 		// to maintain the original pointer
 		Some(input.split_at(0))

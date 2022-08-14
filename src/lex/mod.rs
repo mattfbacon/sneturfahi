@@ -1,3 +1,4 @@
+mod classify;
 pub mod token;
 
 pub use token::Token;

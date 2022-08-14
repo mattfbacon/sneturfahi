@@ -28,6 +28,7 @@ enum LexerState<'input> {
 	},
 	TwoMoreTokens([Token<'input>; 2]),
 	OneMoreToken(Token<'input>),
+	Errored,
 }
 
 struct Lexer<'input> {
@@ -52,7 +53,10 @@ impl<'input> Iterator for Lexer<'input> {
 							zoi_span: span,
 							starting_delimiter_span: match self.words.next() {
 								Some(span) => span,
-								None => return Some(Err(Error::ZoiMissingSeparator { zoi_span: span })),
+								None => {
+									self.state = LexerState::Errored;
+									return Some(Err(Error::ZoiMissingSeparator { zoi_span: span }));
+								}
 							},
 						};
 					}
@@ -102,6 +106,7 @@ impl<'input> Iterator for Lexer<'input> {
 							break Ok(start_token);
 						}
 					} else {
+						self.state = LexerState::Errored;
 						break Err(Error::ZoiUnclosed {
 							zoi_span,
 							starting_delimiter_span,
@@ -117,11 +122,11 @@ impl<'input> Iterator for Lexer<'input> {
 				self.state = LexerState::Normal;
 				Some(Ok(end_token))
 			}
+			LexerState::Errored => None,
 		}
 	}
 }
 
-/// It is a logic error to call `next` on the resulting iterator after it has yielded `Result::Err`
 pub fn lex<'input, 'config>(
 	input: &'input str,
 	config: Config,

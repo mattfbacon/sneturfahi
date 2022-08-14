@@ -56,7 +56,7 @@ impl<'a> Span<'a> {
 		ret
 	}
 
-	pub fn from_slice(slice: &'a str) -> Self {
+	pub fn entire_slice(slice: &'a str) -> Self {
 		Self {
 			start: 0,
 			end: Location::try_from(slice.len()).unwrap(),

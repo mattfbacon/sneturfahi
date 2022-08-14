@@ -4,12 +4,47 @@ pub type Location = u32;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Span<'a> {
-	pub start: Location,
-	pub end: Location,
+	start: Location,
+	end: Location,
 	belongs_to: PhantomData<&'a str>,
 }
 
 impl<'a> Span<'a> {
+	pub fn new(_input: &'a str, start: Location, end: Location) -> Self {
+		let ret = Self {
+			start,
+			end,
+			belongs_to: PhantomData,
+		};
+		ret.assert_valid();
+		ret
+	}
+
+	#[inline(always)]
+	pub fn start(self) -> Location {
+		self.start
+	}
+
+	#[inline(always)]
+	pub fn end(self) -> Location {
+		self.end
+	}
+
+	#[inline]
+	pub fn len(self) -> u32 {
+		self.end - self.start
+	}
+
+	pub fn between(before: Self, after: Self) -> Self {
+		let ret = Self {
+			start: before.end,
+			end: after.start,
+			belongs_to: PhantomData,
+		};
+		ret.assert_valid();
+		ret
+	}
+
 	pub fn from_slice(slice: &'a str) -> Self {
 		Self {
 			start: 0,
@@ -37,5 +72,19 @@ impl<'a> Span<'a> {
 	/// Slice data that may not belong to this span.
 	pub fn slice_arbitrary(self, text: &str) -> Option<&str> {
 		text.get(usize::try_from(self.start).unwrap()..usize::try_from(self.end).unwrap())
+	}
+
+	/// Get the part of the input that is after the end of this span
+	pub fn slice_after(self, text: &'a str) -> Option<&'a str> {
+		self.slice_after_arbitrary(text)
+	}
+
+	/// The same as `slice_after`, but works on data that may not belong to this span
+	pub fn slice_after_arbitrary(self, text: &str) -> Option<&str> {
+		text.get(usize::try_from(self.end).unwrap()..)
+	}
+
+	fn assert_valid(self) {
+		assert!(self.start < self.end);
 	}
 }

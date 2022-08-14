@@ -1,4 +1,7 @@
-#![feature(generators, generator_trait, iter_from_generator)]
+#![feature(generator_trait)]
+#![feature(generators)]
+#![feature(iter_from_generator)]
+#![feature(type_alias_impl_trait)]
 
 mod rules;
 

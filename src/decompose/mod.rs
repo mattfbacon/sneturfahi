@@ -3,7 +3,7 @@
 use crate::rules;
 use crate::span::Span;
 
-fn split_or_trim_condition(ch: char) -> bool {
+pub fn split_or_trim_condition(ch: char) -> bool {
 	".\t\n\r?! ".contains(ch)
 }
 

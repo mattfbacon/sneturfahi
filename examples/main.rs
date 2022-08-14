@@ -41,8 +41,8 @@ fn decompose() {
 
 fn parse() {
 	repl(|input| {
-		let lexed = sneturfahi::lex(input);
-		match sneturfahi::parse(lexed.into_iter()) {
+		let lexed = sneturfahi::lex(input, sneturfahi::lex::Config::default());
+		match sneturfahi::parse(lexed) {
 			Ok(ast) => println!("AST: {ast:#?}"),
 			Err(error) => println!("Error: {error:?}"),
 		}
@@ -50,5 +50,9 @@ fn parse() {
 }
 
 fn lex() {
-	repl(|input| println!("Lexed: {:?}", sneturfahi::lex(input.trim())));
+	repl(|input| {
+		let config = sneturfahi::lex::Config::default();
+		let lexed: Result<Vec<_>, _> = sneturfahi::lex(input, config).collect();
+		println!("Lexed: {lexed:?}");
+	});
 }

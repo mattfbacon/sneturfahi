@@ -710,18 +710,28 @@ pub fn lujvo_minimal(input: &str) -> ParseResult<'_> {
 
 #[debug_rule]
 pub fn brivla(input: &str) -> ParseResult<'_> {
-	or![gismu, fuhivla, lujvo](input)
+	or![gismu, fuhivla, seq![not(cmavo), lujvo_minimal]](input)
+}
+
+/// preconditions: !cmavo
+#[debug_rule]
+pub fn brivla_minimal(input: &str) -> ParseResult<'_> {
+	or![gismu, fuhivla, lujvo_minimal](input)
 }
 
 #[debug_rule]
 pub fn lojban_word(input: &str) -> ParseResult<'_> {
-	or![cmevla, cmavo, brivla](input)
+	or![
+		cmevla,
+		cmavo_semi_minimal, // already checked for cmevla
+		brivla_minimal,
+	](input)
 }
 
 #[debug_rule]
 pub fn cmavo(input: &str) -> ParseResult<'_> {
 	not!(cmevla(input));
-	cmavo_minimal(input).and_peek(post_word)
+	cmavo_semi_minimal(input)
 }
 
 /// preconditions: !cmevla
@@ -729,4 +739,9 @@ pub fn cmavo(input: &str) -> ParseResult<'_> {
 pub fn cmavo_minimal(input: &str) -> ParseResult<'_> {
 	not!(cvcy_lujvo(input));
 	cmavo_form(input)
+}
+
+/// preconditions: !cmevla
+pub fn cmavo_semi_minimal(input: &str) -> ParseResult<'_> {
+	cmavo_minimal(input).and_peek(post_word)
 }

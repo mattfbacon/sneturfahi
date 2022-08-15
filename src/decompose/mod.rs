@@ -131,6 +131,8 @@ impl<'a> Iterator for Decomposer<'a> {
 	}
 }
 
+impl std::iter::FusedIterator for Decomposer<'_> {}
+
 impl<'a> Decomposer<'a> {
 	pub fn next_no_decomposition(&mut self) -> Option<Span<'a>> {
 		match self.state {

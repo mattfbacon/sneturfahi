@@ -192,9 +192,12 @@ impl<'input> Iterator for Lexer<'input> {
 	}
 }
 
+impl std::iter::FusedIterator for Lexer<'_> {}
+
 pub fn lex<'input, 'config>(
 	input: &'input str,
-) -> impl Iterator<Item = Result<Token<'input>, Error<'input>>> + 'input {
+) -> impl Iterator<Item = Result<Token<'input>, Error<'input>>> + std::iter::FusedIterator + 'input
+{
 	Lexer {
 		words: crate::decompose(input),
 		input,

@@ -98,7 +98,11 @@ impl<'a> Iterator for Decomposer<'a> {
 		loop {
 			match self.state {
 				State::Normal => match {
-					let chunk = self.split.next()?;
+					let chunk = self
+						.split
+						.by_ref()
+						.filter(|chunk| !chunk.is_empty())
+						.next()?;
 					self.next_normal(chunk)
 				} {
 					NextNormalResult::YieldDirectly(span) => break Some(span),
@@ -149,9 +153,7 @@ pub fn decompose<'a>(input: &'a str) -> Decomposer<'a> {
 	log::debug!("decomposing {input:?}");
 	Decomposer {
 		input_start: input.as_ptr(),
-		split: input
-			.split(split_or_trim_condition)
-			.filter(|chunk| !chunk.is_empty()),
+		split: input.split(split_or_trim_condition),
 		state: State::Normal,
 	}
 }

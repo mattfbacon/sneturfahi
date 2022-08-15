@@ -230,8 +230,14 @@ mod test {
 		basic: "fuvi zoi gy broda gy fuvi" => [Fa("fu"), Va("vi"), Zoi("zoi"), ZoiDelimiter("gy"), AnyText("broda"), ZoiDelimiter("gy"), Fa("fu"), Va("vi")],
 		pause_delimited_quotes: "zo'oi abcdef la'oi abcdef me'oi abcdef ra'oi abcdef do'oi abcdef" => [Zohoi("zo'oi"), AnyText("abcdef"), Zohoi("la'oi"), AnyText("abcdef"), Mehoi("me'oi"), AnyText("abcdef"), Zohoi("ra'oi"), AnyText("abcdef"), Dohoi("do'oi"), AnyText("abcdef")],
 		pause_delimited_delimited_by_actual_pauses: "zo'oi.abcdef.la'oi.abcdef." => [Zohoi("zo'oi"), AnyText("abcdef"), Zohoi("la'oi"), AnyText("abcdef")],
-		sohehai: "so'e'ai gy. cipna .gy. sipna .gy" => [Sohehai("so'e'ai"), ZoiDelimiter("gy"), AnyText("cipna"), ZoiDelimiter("gy"), AnyText("sipna"), ZoiDelimiter("gy")],
+		sohehai: "so'e'ai gy. cipna .gy. sipna .gy" => [Sohehai("so'e'ai"), ZoiDelimiter("gy"), AnyText(" cipna "), ZoiDelimiter("gy"), AnyText(" sipna "), ZoiDelimiter("gy")],
 		empty_quote: "zoi gy gy" => [Zoi("zoi"), ZoiDelimiter("gy"), ZoiDelimiter("gy")],
 		empty_quote2: "zoi gy.gy" => [Zoi("zoi"), ZoiDelimiter("gy"), ZoiDelimiter("gy")],
+		whitespace_rules: "zoi gy no pauses on the delimiters gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText("no pauses on the delimiters"), ZoiDelimiter("gy")],
+		whitespace_rules2: "zoi gy. pause at start gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" pause at start"), ZoiDelimiter("gy")],
+		whitespace_rules3: "zoi gy pause at end .gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText("pause at end "), ZoiDelimiter("gy")],
+		whitespace_rules4: "zoi gy. pauses on both .gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" pauses on both "), ZoiDelimiter("gy")],
+		whitespace_rules5: "zoi gy   gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" "), ZoiDelimiter("gy")],
+		whitespace_rules6: "zoi gy. . . . .gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" . . . "), ZoiDelimiter("gy")],
 	}
 }

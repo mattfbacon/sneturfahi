@@ -272,8 +272,7 @@ mod test {
 		cmevla_tricky: "alobrodan" => ["alobrodan"],
 		cmevla_tricky2: "zo alobrodan alobroda zo" => ["zo", "alobrodan", "a", "lo", "broda", "zo"],
 		commas: ",,,m,,,i,,,n,,a,,,j,,,i,,,m,,,p,,,e,,," => [",,,m,,,i", ",,,n,,a", ",,,j,,,i,,,m,,,p,,,e"],
-		// to test for avoiding stack-blowing recursion
-		all_commas: ten_to_the_n_commas!(5) => [],
+		dont_blow_the_stack: ten_to_the_n_commas!(5) => [],
 		srasu: include_str!("srasu.txt") => include!("srasu.txt.expected"),
 		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
 		janbe: "tanjelavi" => ["tanjelavi"],

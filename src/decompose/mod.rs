@@ -176,6 +176,82 @@ mod test {
 		}
 	}
 
+	macro_rules! ten_to_the_n_commas {
+		(0) => {
+			", "
+		};
+		(1) => {
+			concat!(
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0),
+				ten_to_the_n_commas!(0)
+			)
+		};
+		(2) => {
+			concat!(
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1),
+				ten_to_the_n_commas!(1)
+			)
+		};
+		(3) => {
+			concat!(
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2),
+				ten_to_the_n_commas!(2)
+			)
+		};
+		(4) => {
+			concat!(
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3),
+				ten_to_the_n_commas!(3)
+			)
+		};
+		(5) => {
+			concat!(
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4),
+				ten_to_the_n_commas!(4)
+			)
+		};
+	}
+
 	tests! {
 		basic: "gismu" => ["gismu"],
 		words: "gismu ko'a jbofuvi" => ["gismu", "ko'a", "jbofuvi"],
@@ -197,7 +273,7 @@ mod test {
 		cmevla_tricky2: "zo alobrodan alobroda zo" => ["zo", "alobrodan", "a", "lo", "broda", "zo"],
 		commas: ",,,m,,,i,,,n,,a,,,j,,,i,,,m,,,p,,,e,,," => [",,,m,,,i", ",,,n,,a", ",,,j,,,i,,,m,,,p,,,e"],
 		// to test for avoiding stack-blowing recursion
-		all_commas: &std::iter::repeat(", ").take(100000).collect::<String>() => [],
+		all_commas: ten_to_the_n_commas!(5) => [],
 		srasu: include_str!("srasu.txt") => include!("srasu.txt.expected"),
 		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
 		janbe: "tanjelavi" => ["tanjelavi"],

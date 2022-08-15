@@ -1,0 +1,161 @@
+Conversation 1, about commas in delimiters:
+
+1 selnunsne: hmm, question about zoi quoting: since commas are mostly ignored, would `zoi ,,gy broda ,gy` be valid, and would `zoi ,gy broda ,,gy` result in `broda ,` or `broda` being quoted
+2 selnunsne: I think to some extent this is a matter of opinion but I'm curious what you all would expect/like to have it do
+3 selnunsne: or should it be configurable 🤔
+4 la kanba: If the comma is before the pause, I think that it is inside the quote.
+5 selnunsne: and if there is no pause? would you consider` zoi ,gy broda ,,gy` to be unclosed?
+6 la kanba: The first delimiter of a *zoi* quotation must end with a pause, and the second begin with a pause. If there is no pause, your parser has to guess tem, maybe ? But I do not even understand how behave commas with correct zoi quote. What iszoi `gy. broda .g,y.`, for example ? la ilmentufa delete commas even inside the quote.
+7 selnunsne: the parser considers spaces to be the same as pauses
+8 selnunsne: I maybe phrased that badly
+9 la kanba: .ilm zoi g,y. bon,jour ,.,g,y.
+10 selnunsne: doesn't work in this channel unfortunately
+11 selnunsne: but I got parse errors
+12 selnunsne: parse error on that as well
+13 selnunsne: it doesn't like any commas at all on the end delimiter
+14 selnunsne: but it doesn't care about them on the start delimiter
+15 selnunsne: also, interesting, it only allows one comma at most within the starting delimiter
+16 selnunsne: in short, it appears that not much thought went into normalizing the behavior
+17 selnunsne: so it will probably not be helpful
+18 selnunsne: [replying to 6] what do you mean "What is"
+19 selnunsne: you mean is it valid?
+20 selnunsne: I think that the best default option is to ignore commas when comparing delimiters
+21 la kanba: I wondered if they are inside the quote, outside the quote, or invalid.
+22 selnunsne: and for pauses to be inserted at spaces as usual
+23 selnunsne: so `zoi gy broda ,,,gy` is `zoi .gy. broda .,,,gy`
+24 selnunsne: meaning the commas are not inside the quote
+25 selnunsne: [replying to 21] CLL says commas can't change anything so the last is not possible
+26 la kanba: But why ?
+27 la kanba: A *zoi* quote can have pause inside it.
+28 la kanba: in `.,,gy.`, the commas are after a pause or a dot, that could be inside the quote, and before the delimiters that end the quote with the help of te pause.
+29 la kanba: I am very confused.
+30 selnunsne: [replying to 28] I see what you mean, but this is not really how decomposition works
+31 selnunsne: ,,gy is considered to be a single word and equivalent to gy
+32 selnunsne: if it were .,,.gy. that would be different
+33 selnunsne: [replying to 32] and that parses fine in ilmentufa
+34 selnunsne: so I think that I am going to ignore commas, but probably make it configurable
+
+Conversation 2, about the breadth of the span of the content of quotes:
+
+1 selnunsne: I am again asking for your opinion
+2 selnunsne: for the content of a zoi quote like this:
+3 selnunsne: `zoi gy. text .gy`
+4 selnunsne: would you want the content to be:
+5 selnunsne: 1: `". text ."`
+6 selnunsne: 2: `" text "`
+7 selnunsne: 3: `"text"`
+8 selnunsne: ?
+9 selnunsne: I'm kinda leaning toward 3 right now but not sure
+10 selnunsne: nvm, definitely 3
+11 la kanba: `" text "`
+12 la kanba: Why would the spaces not be quoted ?
+13 srasu: why would they be? it's intended for spoken quotes
+14 Ntsékees: You could say that whitespaces stands for silences, but then, how to deal with multiple whitespaces? `            ` (twelve spaces) is a silence of how many seconds long?
+15 Ntsékees: In traditional usage, zoi-quotes are used in a way that strongly breaks audio-visual isomorphism, and that annoys me
+16 Ntsékees: Copy of something I said in the *Logical Language Lodge* server one year ago:
+> Something that disturbs me with Lojban zoi is that it breaks audio-visual isomorphism
+> in the way people use it at least
+> i.e. people just put written English within zoi-quotes
+> even though people not knowing English won't be able to utter the quote properly
+> it's difficult to find a satisfying solution to that problem
+> my favored solution would be as follow:
+> • In spoken speech, just utter spoken English in the quote; in spoken speech, you cannot quote written English (unless you spell letter by letter), but instead of using a quote you may point to written English and use a demonstrative pronoun.
+> • In written medium, you may quote spoken English in a phonetic way, e.g. in IPA (which is necessarily approximate of course); you may refer to written English the same way as you would refer to a picture in a text, using a demonstrative pronoun or saying "the image below (representing written English)" for example
+> that may look like an excessively purist protocol
+> I suppose
+> in the written medium, you could have the convention of putting images in cartouches next to an appropriate pronoun referring to its content, e.g. instead of saying "ra cusku zoi gy. Hello .gy mi", you'd say `ra cusku ti [ Hello ] mi`
+> with `[Hello]` being a cartouche not actually part of the sentence but rather like an image put in the middle of a text
+> So basically I'd treat written English like ~~the doodles they are~~ pictures
+17 selnunsne: [replying to 12] if the spaces are quoted, why would the pauses not also be quoted?
+18 selnunsne: spaces are not supposed to be treated any differently from pauses
+19 selnunsne: and in sneturfahi they aren't; it's all just one function
+20 selnunsne: basically the input to the lexer is the chunks from the decomposer
+21 selnunsne: the decomposer is based on splitting by characters that match `split_or_trim_condition`, which matches whitespace pauses, and various other punctuation
+22 selnunsne: thus treating whitespace differently from pauses would be strange
+23 selnunsne: basically the choice I made was to yield the span that contains all the quoted words, so `zoi gy. text text text .gy` would be `"text text text"`
+24 selnunsne: and for empty quotes I just yield nothing for the text portion
+25 selnunsne: like `zoi gy.gy`
+26 selnunsne: the lexer yields Zoi, ZoiDelimiter, ZoiDelimiter
+27 selnunsne: whereas with a normal quote it yields Zoi, ZoiDelimiter, AnyText, ZoiDelimiter
+28 la kanba: I do not know (almost) anything about how parsers are made. But how they are effectively made is not important : they can be wrong. What I think I know aboutzoi quotes, from what I read from the CLL, is that they begin (or rather immediately after) with a pause (« . ») preceded by a delimiter, and end with another pause (and the delimiter following this final pause indicates that it is not a random dot or pause inside the quote). By the way, do not forget that pauses (or glottal stops) are indicated with a « .  » in written Lojban, and that eliding it is dialectal (a very tiny dialect, but still a dialect). Almost all parsers do not care about their absence in most cases, but it only means they can understand this dot-less dialect. Also, there is nothing special about spaces. Spaces are not pauses, in Lojban. Why would they be treated differently than from any other character in this case ? And what if I want to quote only spaces ?
+
+What said Ntsékees about audio-visual isomorphism of zoi quotes makes sense : there is something problematic here, but it is another problem.
+
+I think.
+29 la kanba: [replying to 17] ^
+30 selnunsne: you can't quote only spaces, that doesn't make sense
+31 selnunsne: that would be an empty quote
+32 la kanba: .ienai
+33 la kanba: I thin'k that *zoi* quotes *exactly* any chararcter inside them.
+34 selnunsne: you said that zoi quotes begin with a pause preceded by a delimiter; are you trying to say that the pause should be included in the quote?
+35 la kanba: No : the quote starts immediately after
+36 la kanba: pe'i
+37 selnunsne: I mean
+38 selnunsne: I can implement it like that
+39 selnunsne: what about `zoi gy.gy`
+40 la kanba: It seems an empty quote to me.
+41 selnunsne: and `zoi gy..gy` as well?
+42 srasu: yeah both are empty quotes
+43 srasu: subsequent `.` collapse
+44 la kanba: Hmm, maybe, iI think yes.
+45 selnunsne: it's not about collapsing, it's about word boundaries
+46 selnunsne: `.` induces a word boundary
+47 selnunsne: so does whitespace
+48 la kanba: But `zoi gy...gy.` would be a dot quoted.
+49 srasu: yes
+50 selnunsne: `zoi gy...gy` should be identical to `zoi gy   gy`
+51 la kanba: But why do you think spaces are boundaries ?
+52 srasu: so would zoi gy. . .gy
+53 selnunsne: [replying to 50] in behavior, not necessarily in quoted content
+54 srasu: [replying to 50] no because the instant you're fully inside a zoi quote lojban word boundary rules no longer matter. The correspondence with space and . is broken
+55 la kanba: This.
+56 selnunsne: [replying to 54] "word boundary rules no longer matter" then how do you find the ending delimiter?
+57 la kanba: « There is on rule inside a *zoi* quote, except the one for the final delimiter. »
+58 srasu: with a . or space, because the final one *is* part of lojban separating semantics.
+59 la kanba: That's why I think spaces are quoted, because they are not different from a letter.
+60 srasu: but inside a zoi quote you can put anything and the first and last `(. |.| )` is part of the lojban delimiter
+61 selnunsne: ?
+62 la kanba: (Of course it is different outside quotes.)
+63 selnunsne: well
+64 selnunsne: different parsers have different behavior
+65 selnunsne: every ilmentufa parser ignores all pauses inside quotes
+66 selnunsne: clearly that's not desirable
+67 la kanba: Yes.
+68 selnunsne: but the question is how did they come to that conclusion
+69 selnunsne: or is it simply a technical limitation
+70 la kanba: Maybe it is difficult.
+71 la kanba: Somepone said that *zoi* have special rules in parsers.
+72 selnunsne: it is also difficult for me to implement the behavior you described above.
+73 la kanba: Implemented manually, or something like that.
+74 la kanba: [replying to 72] Maybe.
+75 selnunsne: all text runs through the decomposer. while decomposition like tosmabru -> to smabru can be disabled, a.b.c to a b c can't be
+76 srasu: [replying to 69] technical limitation because they don't care at all what's inside
+77 la kanba: I trust you, I am not very technically savvy.
+78 srasu: because it doesn't matter to validation parsers what's inside
+79 selnunsne: [replying to 75] the basis of the decomposer is splitting by wihtespace, pauses, etc, then filtering out empty chunks
+80 selnunsne: I wonder if the filtering can somehow be made toggleable
+81 selnunsne: if so that would actually solve this problem quite neatly
+82 la kanba: My internal parser is better, it seems.
+83 la kanba: .u'i
+84 srasu: well yeah
+85 selnunsne: because you know what you want to get out of the zoi quote
+86 srasu: it does more than validate if text is grammatical
+87 selnunsne: if you see `zoi gy hello gy` you're not thinking "the word hello with a space before and after it"
+88 selnunsne: u'iru'e
+89 srasu: ie
+90 srasu: same with {zoi gy. hello .gy}
+91 la kanba: Maybe I should.
+92 selnunsne: but one compelling reason to go with your proposed behavior is that it is a superset of the previous behavior
+93 selnunsne: users can always trim the resulting AnyText span to remove the "lojbanic whitespace" on either side
+94 selnunsne: using the aforementioned split_or_trim_condition
+95 la kanba: But I put spaces after and before the quote myself, you are right.
+96 la kanba: But maybe I should not, if I do not want to quote them.
+97 selnunsne: u'iru'e
+98 selnunsne: za'a do xekce soi
+99 la kanba: I feel that I am less rigid inside a zoi quote that outside. I know I can do anything I want, that's maybe why I think it is not too important.
+100 selnunsne: [replying to 99] and that listeners will understand as I said before
+101 selnunsne: though to be fair, zoi gy hello gy is treated the same as zoi gy.hello.gy
+102 la kanba: And that is is grammatical.
+103 selnunsne: the space functions identically to a pause in that situation
+104 selnunsne: only when you write the pauses explicitly do you run into the "quoting whitespace" issue
+105 la kanba: [replying to 98] .i zo'onai .u'i mi go'u so'aroi

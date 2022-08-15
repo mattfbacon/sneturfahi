@@ -3,10 +3,8 @@ use std::num::NonZeroU8;
 use crate::span::Span;
 
 mod classify;
-pub mod config;
 pub mod token;
 
-pub use config::Config;
 pub use token::{Selmaho, Token};
 
 #[derive(Debug, Clone, Copy, thiserror::Error)]
@@ -58,7 +56,6 @@ enum State<'input> {
 struct Lexer<'input> {
 	words: crate::decompose::Decomposer<'input>,
 	input: &'input str,
-	config: Config,
 	state: State<'input>,
 }
 
@@ -115,10 +112,12 @@ impl<'input> Iterator for Lexer<'input> {
 				Some(loop {
 					if let Some(word_span) = self.words.next_no_decomposition() {
 						let possible_ending_delimiter = word_span.slice(self.input).unwrap();
-						if self.config.zoi_delimiter_comparison.compare(
-							starting_delimiter_span.slice(self.input).unwrap(),
-							possible_ending_delimiter,
-						) {
+						let starting_delimiter = starting_delimiter_span.slice(self.input).unwrap();
+						if starting_delimiter
+							.chars()
+							.filter(|&ch| ch != ',')
+							.eq(possible_ending_delimiter.chars().filter(|&ch| ch != ','))
+						{
 							let ending_delimiter_span = word_span;
 							let start_token = Token {
 								experimental: false,
@@ -195,12 +194,10 @@ impl<'input> Iterator for Lexer<'input> {
 
 pub fn lex<'input, 'config>(
 	input: &'input str,
-	config: Config,
 ) -> impl Iterator<Item = Result<Token<'input>, Error<'input>>> + 'input {
 	Lexer {
 		words: crate::decompose(input),
 		input,
-		config,
 		state: State::Normal,
 	}
 }
@@ -212,7 +209,7 @@ mod test {
 			#[test]
 			fn $name() {
 				let raw = $raw;
-				let result: Vec<_> = super::lex(raw, super::Config::default())
+				let result: Vec<_> = super::lex(raw)
 					.map(Result::unwrap)
 					.map(|token| (token.selmaho, token.span.slice(raw).unwrap()))
 					.collect();

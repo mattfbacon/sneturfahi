@@ -1,4 +1,20 @@
 #![feature(type_alias_impl_trait)]
+#![deny(
+	absolute_paths_not_starting_with_crate,
+	future_incompatible,
+	keyword_idents,
+	macro_use_extern_crate,
+	meta_variable_misuse,
+	missing_abi,
+	non_ascii_idents,
+	nonstandard_style,
+	noop_method_call,
+	pointer_structural_match,
+	private_in_public,
+	rust_2018_idioms
+)]
+#![warn(clippy::pedantic, missing_docs, missing_copy_implementations)]
+#![forbid(unsafe_code)]
 
 mod rules;
 

@@ -1,7 +1,18 @@
+//! This module centers around [Token] and [Selmaho]. [Token] is the type yielded by [lex] (well, actually, a `Result` where the `Ok` type is [Token]).
+//!
+//! [lex]: crate::lex
+
 use crate::span::Span;
 
+/// The classification of a word.
+///
+/// Most of the variants conform to the strict meaning of selmaho, which is the grammatical type of a cmavo.
+/// A few others represent other word types in Lojban: `Cmevla`, `Gismu`, `Fuhivla`, and `Lujvo`.
+/// Finally, there are some "technical" selmaho: `AnyText`, `UnknownCmavo`, and `ZoiDelimiter`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Selmaho {
+	// regular cmavo
 	A,
 	Bai,
 	Bahe,
@@ -247,13 +258,15 @@ pub enum Selmaho {
 	Zohiho,
 	Zohoi,
 
-	// non-cmavo "selmaho"
+	// non-cmavo selmaho
 
 	// all three of these are brivla and as such are treated the same by parsers, but the distinction may be helpful for other users of the lexer
 	Gismu,
 	Fuhivla,
 	Lujvo,
 	Cmevla,
+
+	// technical selmaho
 	/// For words that have cmavo form but aren't recognized as a specific selmaho
 	UnknownCmavo,
 	/// Whenever the text is not recognized. May occur in valid Lojban, between, for example, the delimiters of `zoi` constructs, but not necessarily.
@@ -263,7 +276,18 @@ pub enum Selmaho {
 }
 
 impl Selmaho {
-	/// If the selmaho itself is experimental, meaning that all the cmavo in it are experimental
+	/// If the selmaho itself is experimental, meaning that all the cmavo in it are experimental.
+	/// False for all non-cmavo and technical cmavo, except `UnknownCmavo`.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// # use sneturfahi::lex::token::Selmaho;
+	/// assert!(!Selmaho::A.is_fundamentally_experimental());
+	/// assert!(Selmaho::Xahoihahoiha.is_fundamentally_experimental());
+	/// assert!(!Selmaho::Gismu.is_fundamentally_experimental());
+	/// assert!(!Selmaho::ZoiDelimiter.is_fundamentally_experimental());
+	/// ```
 	pub fn is_fundamentally_experimental(self) -> bool {
 		// brevity is sacrificed on the altar of exhaustiveness
 		match self {
@@ -519,9 +543,17 @@ impl Selmaho {
 	}
 }
 
+/// The token yielded by the [lex] iterator.
+///
+/// Note: this type implements [PartialEq] and [Eq], but they compare the spans of the tokens, not the tokens themselves.
+///
+/// [lex]: crate::lex
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
+	/// For cmavo, if that cmavo is experimental.
 	pub experimental: bool,
+	/// The position of the token within the input. This is also used to get the actual content of the token.
 	pub span: Span,
+	/// The type of the token.
 	pub selmaho: Selmaho,
 }

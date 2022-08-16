@@ -46,7 +46,13 @@ impl Selmaho {
 		}
 	}
 
-	/// Also returns if the word is experimental (only for cmavo)
+	/// Determine the [Selmaho] of a word.
+	/// This word should already be decomposed; if you need to decompose words, see the [decompose] module.
+	/// However, if you're doing that, then you might as well use the included lexer directly; see the [lex] module.
+	/// Also returns, for cmavo selmaho, if the cmavo was experimental.
+	///
+	/// [decompose]: crate::decompose
+	/// [lex]: crate::lex
 	pub fn classify(word: &str) -> (Self, bool) {
 		let mut direct_cmavo_check_buf = [0u8; 16];
 		let direct_cmavo_check = transform_for_direct_cmavo_check(word, &mut direct_cmavo_check_buf);

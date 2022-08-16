@@ -388,7 +388,8 @@ impl Selmaho {
 			| Self::Zohau
 			| Self::Zohehu
 			| Self::Zohiho
-			| Self::Zohoi => true,
+			| Self::Zohoi
+			| Self::UnknownCmavo => true,
 			Self::A
 			| Self::Bai
 			| Self::Bahe

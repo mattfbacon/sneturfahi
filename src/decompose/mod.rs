@@ -430,7 +430,7 @@ mod test {
 		cmevla_tricky2: "zo alobrodan alobroda zo" => ["zo", "alobrodan", "a", "lo", "broda", "zo"],
 		commas: ",,,m,,,i,,,n,,a,,,j,,,i,,,m,,,p,,,e,,," => [",,,m,,,i", ",,,n,,a", ",,,j,,,i,,,m,,,p,,,e"],
 		dont_blow_the_stack: ten_to_the_n_commas!(5) => [],
-		srasu: include_str!("srasu.txt") => include!("srasu.txt.expected"),
+		srasu: include_str!("../srasu.txt") => include!("srasu.txt.expected"),
 		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
 		janbe: "tanjelavi" => ["tanjelavi"],
 		thrig: "mablabigerku" => ["ma", "blabigerku"],

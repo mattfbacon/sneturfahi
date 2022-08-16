@@ -446,10 +446,27 @@ mod test {
 				assert_eq!(result, &[$((super::token::Selmaho::$ttype, $text),)*] as &[(super::token::Selmaho, &str)]);
 			}
 		};
+		($name:ident, $raw:expr, $actual:expr) => {
+			use crate::{Span, lex::token::{Token, Selmaho::*}};
+			#[test]
+			fn $name() {
+				let raw = $raw;
+				let result: Vec<_> = super::lex(raw)
+					.map(Result::unwrap)
+					.collect();
+				assert_eq!(result, $actual);
+			}
+		};
 	}
 	macro_rules! tests {
-		($($name:ident : $raw:expr => [$($expected:tt)*],)*) => {
-			$(make_test!($name, $raw, [$($expected)*]);)*
+		() => {};
+		($name:ident : $raw:expr => [$($expected:tt)*], $($rest:tt)*) => {
+			make_test!($name, $raw, [$($expected)*]);
+			tests!($($rest)*);
+		};
+		($name:ident : $raw:expr => $actual:expr, $($rest:tt)*) => {
+			make_test!($name, $raw, $actual);
+			tests!($($rest)*);
 		}
 	}
 
@@ -469,5 +486,6 @@ mod test {
 		whitespace_rules4: "zoi gy. pauses on both .gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" pauses on both "), ZoiDelimiter("gy")],
 		whitespace_rules5: "zoi gy   gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" "), ZoiDelimiter("gy")],
 		whitespace_rules6: "zoi gy. . . . .gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" . . . "), ZoiDelimiter("gy")],
+		srasu: include_str!("../srasu.txt") => include!("srasu.txt.expected"),
 	}
 }

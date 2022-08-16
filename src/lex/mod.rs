@@ -16,7 +16,10 @@ pub enum Error {
 	/// # use sneturfahi::lex::{lex, Error};
 	/// let invalid_input = "zoi";
 	/// let result = lex(invalid_input).collect::<Result<Vec<_>, _>>();
-	/// assert!(matches!(result, Err(Error::DelimitedQuoteMissingSeparator{ .. })));
+	/// assert!(matches!(
+	/// 	result,
+	/// 	Err(Error::DelimitedQuoteMissingSeparator { .. })
+	/// ));
 	/// ```
 	#[error("expected a separator after a delimited quote initiator but found the end of input")]
 	DelimitedQuoteMissingSeparator {
@@ -25,8 +28,10 @@ pub enum Error {
 		/// ```rust
 		/// # use sneturfahi::lex::{lex, Error};
 		/// let invalid_input = "zoi";
-		/// let error = lex(invalid_input).collect::<Result<Vec<_>, _>>().unwrap_err();
-		/// if let Error::DelimitedQuoteMissingSeparator{ initiator_span } = error {
+		/// let error = lex(invalid_input)
+		/// 	.collect::<Result<Vec<_>, _>>()
+		/// 	.unwrap_err();
+		/// if let Error::DelimitedQuoteMissingSeparator { initiator_span } = error {
 		/// 	assert_eq!(initiator_span.slice(invalid_input).unwrap(), "zoi");
 		/// } else {
 		/// 	unreachable!("expected DelimitedQuoteMissingSeparator variant, got {error:?}");
@@ -40,7 +45,7 @@ pub enum Error {
 	/// # use sneturfahi::lex::{lex, Error};
 	/// let invalid_input = "zoi gy my nice text but no terminator";
 	/// let result = lex(invalid_input).collect::<Result<Vec<_>, _>>();
-	/// assert!(matches!(result, Err(Error::DelimitedQuoteUnclosed{ .. })));
+	/// assert!(matches!(result, Err(Error::DelimitedQuoteUnclosed { .. })));
 	/// ```
 	#[error("a delimited quote is unclosed")]
 	DelimitedQuoteUnclosed {
@@ -49,8 +54,10 @@ pub enum Error {
 		/// ```rust
 		/// # use sneturfahi::lex::{lex, Error};
 		/// let invalid_input = "zoi gy my nice text but no terminator";
-		/// let error = lex(invalid_input).collect::<Result<Vec<_>, _>>().unwrap_err();
-		/// if let Error::DelimitedQuoteUnclosed{ initiator_span, .. } = error {
+		/// let error = lex(invalid_input)
+		/// 	.collect::<Result<Vec<_>, _>>()
+		/// 	.unwrap_err();
+		/// if let Error::DelimitedQuoteUnclosed { initiator_span, .. } = error {
 		/// 	assert_eq!(initiator_span.slice(invalid_input).unwrap(), "zoi");
 		/// } else {
 		/// 	unreachable!("expected DelimitedQuoteUnclosed variant, got {error:?}");
@@ -62,8 +69,14 @@ pub enum Error {
 		/// ```rust
 		/// # use sneturfahi::lex::{lex, Error};
 		/// let invalid_input = "zoi gy my nice text but no terminator";
-		/// let error = lex(invalid_input).collect::<Result<Vec<_>, _>>().unwrap_err();
-		/// if let Error::DelimitedQuoteUnclosed{ starting_delimiter_span, .. } = error {
+		/// let error = lex(invalid_input)
+		/// 	.collect::<Result<Vec<_>, _>>()
+		/// 	.unwrap_err();
+		/// if let Error::DelimitedQuoteUnclosed {
+		/// 	starting_delimiter_span,
+		/// 	..
+		/// } = error
+		/// {
 		/// 	assert_eq!(starting_delimiter_span.slice(invalid_input).unwrap(), "gy");
 		/// } else {
 		/// 	unreachable!("expected DelimitedQuoteUnclosed variant, got {error:?}");
@@ -77,7 +90,7 @@ pub enum Error {
 	/// # use sneturfahi::lex::{lex, Error};
 	/// let invalid_input = "me'oi";
 	/// let result = lex(invalid_input).collect::<Result<Vec<_>, _>>();
-	/// assert!(matches!(result, Err(Error::PauseDelimitedQuoteEof{ .. })));
+	/// assert!(matches!(result, Err(Error::PauseDelimitedQuoteEof { .. })));
 	/// ```
 	#[error("expected the content of a pause-delimited quote but found the end of input")]
 	PauseDelimitedQuoteEof {
@@ -86,8 +99,10 @@ pub enum Error {
 		/// ```rust
 		/// # use sneturfahi::lex::{lex, Error};
 		/// let invalid_input = "me'oi";
-		/// let error = lex(invalid_input).collect::<Result<Vec<_>, _>>().unwrap_err();
-		/// if let Error::PauseDelimitedQuoteEof{ initiator_span } = error {
+		/// let error = lex(invalid_input)
+		/// 	.collect::<Result<Vec<_>, _>>()
+		/// 	.unwrap_err();
+		/// if let Error::PauseDelimitedQuoteEof { initiator_span } = error {
 		/// 	assert_eq!(initiator_span.slice(invalid_input).unwrap(), "me'oi");
 		/// } else {
 		/// 	unreachable!("expected PauseDelimitedQuoteEof variant, got {error:?}");
@@ -280,28 +295,31 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 /// # use sneturfahi::span::Span;
 /// let input = "mi nelci la sneturfa'i";
 /// let result: Result<Vec<_>, _> = lex(input).collect();
-/// assert_eq!(result.unwrap(), [
-/// 	Token {
-/// 		experimental: false,
-/// 		selmaho: Selmaho::Koha,
-/// 		span: Span::new(0, 2),
-/// 	},
-/// 	Token {
-/// 		experimental: false,
-/// 		selmaho: Selmaho::Gismu,
-/// 		span: Span::new(3, 8),
-/// 	},
-/// 	Token {
-/// 		experimental: false,
-/// 		selmaho: Selmaho::La,
-/// 		span: Span::new(9, 11),
-/// 	},
-/// 	Token {
-/// 		experimental: false,
-/// 		selmaho: Selmaho::Lujvo,
-/// 		span: Span::new(12, 22),
-/// 	},
-/// ]);
+/// assert_eq!(
+/// 	result.unwrap(),
+/// 	[
+/// 		Token {
+/// 			experimental: false,
+/// 			selmaho: Selmaho::Koha,
+/// 			span: Span::new(0, 2),
+/// 		},
+/// 		Token {
+/// 			experimental: false,
+/// 			selmaho: Selmaho::Gismu,
+/// 			span: Span::new(3, 8),
+/// 		},
+/// 		Token {
+/// 			experimental: false,
+/// 			selmaho: Selmaho::La,
+/// 			span: Span::new(9, 11),
+/// 		},
+/// 		Token {
+/// 			experimental: false,
+/// 			selmaho: Selmaho::Lujvo,
+/// 			span: Span::new(12, 22),
+/// 		},
+/// 	]
+/// );
 /// ```
 ///
 /// However, as shown in the following examples, one doesn't typically process the lexer output wholesale.
@@ -311,9 +329,14 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 /// ```rust
 /// # use sneturfahi::lex::lex;
 /// let input = "zoi gy hello world gy me'oi alobroda";
-/// let result: Result<Vec<_>, _> = lex(input).map(|token| token.map(|token| token.span.slice(input).unwrap())).collect();
+/// let result: Result<Vec<_>, _> = lex(input)
+/// 	.map(|token| token.map(|token| token.span.slice(input).unwrap()))
+/// 	.collect();
 /// // "hello world" and "alobroda" are grouped into single AnyText tokens.
-/// assert_eq!(result.unwrap(), ["zoi", "gy", "hello world", "gy", "me'oi", "alobroda"]);
+/// assert_eq!(
+/// 	result.unwrap(),
+/// 	["zoi", "gy", "hello world", "gy", "me'oi", "alobroda"]
+/// );
 /// ```
 ///
 /// For selmaho like ZOI and MUhOI which initiate delimited quotes, the selmaho of the tokens yielded after will be `[ZoiDelimiter, AnyText, ZoiDelimiter]`:
@@ -321,8 +344,18 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 /// ```rust
 /// # use sneturfahi::lex::{lex, Selmaho};
 /// let input = "zoi gy hello world gy";
-/// let result: Result<Vec<_>, _> = lex(input).map(|token| token.map(|token| token.selmaho)).collect();
-/// assert_eq!(result.unwrap(), [Selmaho::Zoi, Selmaho::ZoiDelimiter, Selmaho::AnyText, Selmaho::ZoiDelimiter]);
+/// let result: Result<Vec<_>, _> = lex(input)
+/// 	.map(|token| token.map(|token| token.selmaho))
+/// 	.collect();
+/// assert_eq!(
+/// 	result.unwrap(),
+/// 	[
+/// 		Selmaho::Zoi,
+/// 		Selmaho::ZoiDelimiter,
+/// 		Selmaho::AnyText,
+/// 		Selmaho::ZoiDelimiter
+/// 	]
+/// );
 /// ```
 ///
 /// For selmaho like SOhEhAI which initiate multiple delimited quotes, the text chunks of the quotes will be surrounded and separated by `ZoiDelimiter`s:
@@ -330,8 +363,20 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 /// ```rust
 /// # use sneturfahi::lex::{lex, Selmaho};
 /// let input = "so'e'ai gy cipna gy sipna gy";
-/// let result: Result<Vec<_>, _> = lex(input).map(|token| token.map(|token| token.selmaho)).collect();
-/// assert_eq!(result.unwrap(), [Selmaho::Sohehai, Selmaho::ZoiDelimiter, Selmaho::AnyText, Selmaho::ZoiDelimiter, Selmaho::AnyText, Selmaho::ZoiDelimiter]);
+/// let result: Result<Vec<_>, _> = lex(input)
+/// 	.map(|token| token.map(|token| token.selmaho))
+/// 	.collect();
+/// assert_eq!(
+/// 	result.unwrap(),
+/// 	[
+/// 		Selmaho::Sohehai,
+/// 		Selmaho::ZoiDelimiter,
+/// 		Selmaho::AnyText,
+/// 		Selmaho::ZoiDelimiter,
+/// 		Selmaho::AnyText,
+/// 		Selmaho::ZoiDelimiter
+/// 	]
+/// );
 /// ```
 ///
 /// For selmaho like MEhOI, ZOhOI, and DOhOI which initiate pause-delimited quotes, the text will be yielded as a single `AnyText` token:
@@ -339,7 +384,9 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 /// ```rust
 /// # use sneturfahi::lex::{lex, Selmaho};
 /// let input = "me'oi broda";
-/// let result: Result<Vec<_>, _> = lex(input).map(|token| token.map(|token| token.selmaho)).collect();
+/// let result: Result<Vec<_>, _> = lex(input)
+/// 	.map(|token| token.map(|token| token.selmaho))
+/// 	.collect();
 /// assert_eq!(result.unwrap(), [Selmaho::Mehoi, Selmaho::AnyText]);
 /// ```
 ///
@@ -348,7 +395,9 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 /// ```rust
 /// # use sneturfahi::lex::{lex, Selmaho};
 /// let input = "ui ca'e'ei i'au";
-/// let result: Result<Vec<_>, _> = lex(input).map(|token| token.map(|token| token.experimental)).collect();
+/// let result: Result<Vec<_>, _> = lex(input)
+/// 	.map(|token| token.map(|token| token.experimental))
+/// 	.collect();
 /// assert_eq!(result.unwrap(), [false, true, true]);
 /// ```
 ///

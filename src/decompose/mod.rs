@@ -171,9 +171,28 @@ impl<'input> Decomposer<'input> {
 	/// let input = "minajimpe donajimpe ko'anajimpe";
 	/// let mut decomposer = decompose(input);
 	/// assert_eq!(decomposer.next().unwrap().slice(input).unwrap(), "mi");
-	/// assert_eq!(decomposer.next_no_decomposition().unwrap().slice(input).unwrap(), "najimpe");
-	/// assert_eq!(decomposer.next_no_decomposition().unwrap().slice(input).unwrap(), "donajimpe");
-	/// assert_eq!(decomposer.map(|span| span.slice(input).unwrap()).collect::<Vec<_>>(), ["ko'a", "na", "jimpe"]);
+	/// assert_eq!(
+	/// 	decomposer
+	/// 		.next_no_decomposition()
+	/// 		.unwrap()
+	/// 		.slice(input)
+	/// 		.unwrap(),
+	/// 	"najimpe"
+	/// );
+	/// assert_eq!(
+	/// 	decomposer
+	/// 		.next_no_decomposition()
+	/// 		.unwrap()
+	/// 		.slice(input)
+	/// 		.unwrap(),
+	/// 	"donajimpe"
+	/// );
+	/// assert_eq!(
+	/// 	decomposer
+	/// 		.map(|span| span.slice(input).unwrap())
+	/// 		.collect::<Vec<_>>(),
+	/// 	["ko'a", "na", "jimpe"]
+	/// );
 	/// ```
 	///
 	/// This function also doesn't filter empty chunks like plain `next` does:
@@ -182,7 +201,9 @@ impl<'input> Decomposer<'input> {
 	/// # use sneturfahi::decompose::decompose;
 	/// let input = "zoi gy   gy"; // an example of a context where empty chunks might be important
 	/// let mut decomposer = decompose(input);
-	/// let result = std::iter::from_fn(|| decomposer.next_no_decomposition()).map(|span| span.slice(input).unwrap()).collect::<Vec<_>>();
+	/// let result = std::iter::from_fn(|| decomposer.next_no_decomposition())
+	/// 	.map(|span| span.slice(input).unwrap())
+	/// 	.collect::<Vec<_>>();
 	/// assert_eq!(result, ["zoi", "gy", "", "", "gy"]);
 	/// ```
 	pub fn next_no_decomposition(&mut self) -> Option<Span> {
@@ -213,7 +234,9 @@ fn _assert_iterator<'input>() {
 /// ```rust
 /// # use sneturfahi::decompose::decompose;
 /// let input = "broda broda.broda!broda";
-/// let decomposed: Vec<_> = decompose(input).map(|span| span.slice(input).unwrap()).collect();
+/// let decomposed: Vec<_> = decompose(input)
+/// 	.map(|span| span.slice(input).unwrap())
+/// 	.collect();
 /// assert_eq!(decomposed, ["broda", "broda", "broda", "broda"]);
 /// ```
 ///
@@ -228,7 +251,9 @@ fn _assert_iterator<'input>() {
 /// 	("alobroda", &["a", "lo", "broda"]),
 /// ];
 /// for (input, expected) in examples {
-/// 	let decomposed: Vec<_> = decompose(input).map(|span| span.slice(input).unwrap()).collect();
+/// 	let decomposed: Vec<_> = decompose(input)
+/// 		.map(|span| span.slice(input).unwrap())
+/// 		.collect();
 /// 	assert_eq!(decomposed, expected);
 /// }
 /// ```
@@ -238,7 +263,9 @@ fn _assert_iterator<'input>() {
 /// ```rust
 /// # use sneturfahi::decompose::decompose;
 /// let input = "alobrodan"; // "alobroda" would decompose as shown above
-/// let decomposed: Vec<_> = decompose(input).map(|span| span.slice(input).unwrap()).collect();
+/// let decomposed: Vec<_> = decompose(input)
+/// 	.map(|span| span.slice(input).unwrap())
+/// 	.collect();
 /// assert_eq!(decomposed, ["alobrodan"]);
 /// ```
 ///
@@ -247,7 +274,9 @@ fn _assert_iterator<'input>() {
 /// ```rust
 /// # use sneturfahi::decompose::decompose;
 /// let input = "mablabigerku"; // "blabigerku" may look like two gismu but is actually one fuhivla
-/// let decomposed: Vec<_> = decompose(input).map(|span| span.slice(input).unwrap()).collect();
+/// let decomposed: Vec<_> = decompose(input)
+/// 	.map(|span| span.slice(input).unwrap())
+/// 	.collect();
 /// assert_eq!(decomposed, ["ma", "blabigerku"]);
 /// ```
 ///

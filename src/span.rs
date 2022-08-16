@@ -140,7 +140,10 @@ impl Span {
 	/// # use sneturfahi::span::Span;
 	/// let input = "abc def ghi";
 	/// let input_start = input.as_ptr();
-	/// let split: Vec<_> = input.split_whitespace().map(|chunk| Span::from_embedded_slice(input_start, chunk)).collect();
+	/// let split: Vec<_> = input
+	/// 	.split_whitespace()
+	/// 	.map(|chunk| Span::from_embedded_slice(input_start, chunk))
+	/// 	.collect();
 	/// assert_eq!(split, [Span::at(0, 3), Span::at(4, 3), Span::at(8, 3)]);
 	/// ```
 	#[must_use]
@@ -173,7 +176,12 @@ impl Span {
 	/// let unrelated_string = "gg";
 	/// assert!(span.slice(unrelated_string).is_none());
 	/// let unrelated_string_that_happens_to_be_long_enough = "zyxwvutsr";
-	/// assert_eq!(span.slice(unrelated_string_that_happens_to_be_long_enough).unwrap(), "yxw");
+	/// assert_eq!(
+	/// 	span
+	/// 		.slice(unrelated_string_that_happens_to_be_long_enough)
+	/// 		.unwrap(),
+	/// 	"yxw"
+	/// );
 	/// ```
 	#[must_use]
 	pub fn slice(self, text: &str) -> Option<&str> {

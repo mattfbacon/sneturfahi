@@ -288,7 +288,7 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 
 /// Lex the Lojban text into a sequence of [Token]s, with an [Error] possibly occurring.
 ///
-/// Typical usage of this function involves collecting to `Result<Vec<_>, _>`, where the first `_` will be inferred to be `Token<'input>` and the second `Error<'input>`:
+/// Typical usage of this function involves collecting to `Result<Vec<_>, _>`, where the first `_` will be inferred to be `Token` and the second `Error`:
 ///
 /// ```rust
 /// # use sneturfahi::lex::{lex, Token, Selmaho};

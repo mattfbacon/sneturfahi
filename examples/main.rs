@@ -1,3 +1,5 @@
+use std::io::Read as _;
+
 fn main() {
 	if std::env::var_os("VERBOSE").is_some() {
 		simplelog::SimpleLogger::init(log::LevelFilter::Trace, simplelog::Config::default()).unwrap();
@@ -8,24 +10,23 @@ fn main() {
 		// "parse" => parse(),
 		"lex" => lex(),
 		"decompose" => decompose(),
-		"decompose-stdin" => {
-			let mut input = String::new();
-			std::io::Read::read_to_string(&mut std::io::stdin().lock(), &mut input).unwrap();
-			let decomposed: Vec<_> = sneturfahi::decompose(&input).collect();
-			println!("Decomposed: {decomposed:?}");
-		}
 		_ => panic!("unknown action"),
 	}
 }
 
 fn repl(mut callback: impl FnMut(&str)) {
 	let mut input = String::new();
-	loop {
-		eprint!("> ");
-		input.clear();
-		if std::io::stdin().read_line(&mut input).unwrap() == 0 {
-			break;
+	if atty::is(atty::Stream::Stdin) {
+		loop {
+			eprint!("> ");
+			input.clear();
+			if std::io::stdin().read_line(&mut input).unwrap() == 0 {
+				break;
+			}
+			callback(input.trim());
 		}
+	} else {
+		std::io::stdin().read_to_string(&mut input).unwrap();
 		callback(input.trim());
 	}
 }

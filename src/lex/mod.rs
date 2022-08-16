@@ -8,28 +8,28 @@ pub mod token;
 pub use token::{Selmaho, Token};
 
 #[derive(Debug, Clone, Copy, thiserror::Error)]
-pub enum Error<'input> {
+pub enum Error {
 	#[error("expected separator after delimited quote initiator but end of input found")]
-	DelimitedQuoteMissingSeparator { initiator_span: Span<'input> },
+	DelimitedQuoteMissingSeparator { initiator_span: Span },
 	#[error("delimited quote is unclosed")]
 	DelimitedQuoteUnclosed {
-		initiator_span: Span<'input>,
-		starting_delimiter_span: Span<'input>,
+		initiator_span: Span,
+		starting_delimiter_span: Span,
 	},
 	#[error("expected content of pause-delimited quote but end of input found")]
-	PauseDelimitedQuoteEof { initiator_span: Span<'input> },
+	PauseDelimitedQuoteEof { initiator_span: Span },
 }
 
 #[derive(Clone, Copy)]
-struct DelimitedQuoteState<'input> {
+struct DelimitedQuoteState {
 	how_many: NonZeroU8,
-	initiator_span: Span<'input>,
+	initiator_span: Span,
 	is_first: bool,
-	starting_delimiter_span: Span<'input>,
+	starting_delimiter_span: Span,
 }
 
-impl<'input> DelimitedQuoteState<'input> {
-	fn next(self, ending_delimiter_span: Span<'input>) -> Option<Self> {
+impl DelimitedQuoteState {
+	fn next(self, ending_delimiter_span: Span) -> Option<Self> {
 		self
 			.how_many
 			.get()
@@ -44,23 +44,23 @@ impl<'input> DelimitedQuoteState<'input> {
 	}
 }
 
-enum State<'input> {
+enum State {
 	Normal,
-	DelimitedQuote(DelimitedQuoteState<'input>),
-	TwoMoreTokensThen([Token<'input>; 2], Option<DelimitedQuoteState<'input>>),
-	OneMoreTokenThen(Token<'input>, Option<DelimitedQuoteState<'input>>),
-	PauseDelimitedQuote { initiator_span: Span<'input> },
+	DelimitedQuote(DelimitedQuoteState),
+	TwoMoreTokensThen([Token; 2], Option<DelimitedQuoteState>),
+	OneMoreTokenThen(Token, Option<DelimitedQuoteState>),
+	PauseDelimitedQuote { initiator_span: Span },
 	Errored,
 }
 
 struct Lexer<'input> {
 	words: crate::decompose::Decomposer<'input>,
 	input: &'input str,
-	state: State<'input>,
+	state: State,
 }
 
-impl<'input> Iterator for Lexer<'input> {
-	type Item = Result<Token<'input>, Error<'input>>;
+impl Iterator for Lexer<'_> {
+	type Item = Result<Token, Error>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.state {
@@ -127,7 +127,7 @@ impl<'input> Iterator for Lexer<'input> {
 							let text_token = (|| {
 								Some(Token {
 									experimental: false,
-									span: Span::new(self.input, start_of_quote?, end_of_quote?),
+									span: Span::new(start_of_quote?, end_of_quote?),
 									selmaho: Selmaho::AnyText,
 								})
 							})();
@@ -152,8 +152,8 @@ impl<'input> Iterator for Lexer<'input> {
 							}
 						} else {
 							let quote_part = word_span;
-							start_of_quote.get_or_insert(quote_part.start());
-							end_of_quote = Some(quote_part.end());
+							start_of_quote.get_or_insert(quote_part.start);
+							end_of_quote = Some(quote_part.end);
 						}
 					} else {
 						self.state = State::Errored;
@@ -196,8 +196,7 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 
 pub fn lex<'input, 'config>(
 	input: &'input str,
-) -> impl Iterator<Item = Result<Token<'input>, Error<'input>>> + std::iter::FusedIterator + 'input
-{
+) -> impl Iterator<Item = Result<Token, Error>> + std::iter::FusedIterator + 'input {
 	Lexer {
 		words: crate::decompose(input),
 		input,

@@ -10,8 +10,6 @@ pub struct Ast<'a> {
 	_dummy: &'a str,
 }
 
-pub fn parse<'a>(
-	_input: impl Iterator<Item = Result<Token<'a>, lex::Error<'a>>>,
-) -> Result<Ast<'a>> {
+pub fn parse<'a>(_input: impl Iterator<Item = Result<Token, lex::Error>>) -> Result<Ast<'a>> {
 	todo!()
 }

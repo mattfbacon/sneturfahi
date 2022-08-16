@@ -512,16 +512,15 @@ impl Selmaho {
 			| Self::Fuhivla
 			| Self::Lujvo
 			| Self::Cmevla
-			| Self::UnknownCmavo
 			| Self::AnyText
 			| Self::ZoiDelimiter => false,
 		}
 	}
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct Token<'a> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Token {
 	pub experimental: bool,
-	pub span: Span<'a>,
+	pub span: Span,
 	pub selmaho: Selmaho,
 }

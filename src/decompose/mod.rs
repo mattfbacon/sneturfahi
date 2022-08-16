@@ -20,37 +20,37 @@ fn simple_cmevla_check(input: &str) -> bool {
 		.map_or(false, is_consonant)
 }
 
-type Input<'a> = impl Iterator<Item = &'a str>;
+type Input<'input> = impl Iterator<Item = &'input str>;
 
 #[derive(Clone, Copy)]
-enum State<'a> {
+enum State<'input> {
 	Normal,
-	Decomposing { rest: &'a str },
+	Decomposing { rest: &'input str },
 }
 
-pub struct Decomposer<'a> {
+pub struct Decomposer<'input> {
 	input_start: *const u8,
-	split: Input<'a>,
-	state: State<'a>,
+	split: Input<'input>,
+	state: State<'input>,
 }
 
 #[derive(Clone, Copy)]
-enum NextNormalResult<'a> {
-	YieldDirectly(Span<'a>),
-	NeedsDecomposition(&'a str),
+enum NextNormalResult<'input> {
+	YieldDirectly(Span),
+	NeedsDecomposition(&'input str),
 }
 
 #[derive(Clone, Copy)]
-enum NextDecomposingResult<'a> {
+enum NextDecomposingResult<'input> {
 	Continue {
-		new_rest: &'a str,
-		step_result: Span<'a>,
+		new_rest: &'input str,
+		step_result: Span,
 	},
-	Break(Span<'a>),
+	Break(Span),
 	BreakWithNext,
 }
 
-impl<'a> Decomposer<'a> {
+impl<'input> Decomposer<'input> {
 	fn post_word(input: &str) -> bool {
 		rules::nucleus(input).is_none()
 			&& (rules::gismu(input).is_some()
@@ -59,7 +59,7 @@ impl<'a> Decomposer<'a> {
 				|| rules::cmavo_minimal(input).is_some())
 	}
 
-	fn next_normal(&self, chunk: &'a str) -> NextNormalResult<'a> {
+	fn next_normal(&self, chunk: &'input str) -> NextNormalResult<'input> {
 		log::trace!("chunk of input is {chunk:?}");
 		if simple_cmevla_check(chunk) {
 			log::trace!("chunk was cmevla, yielding and moving to next chunk");
@@ -70,7 +70,7 @@ impl<'a> Decomposer<'a> {
 		}
 	}
 
-	fn next_decomposing(&self, rest: &'a str) -> NextDecomposingResult<'a> {
+	fn next_decomposing(&self, rest: &'input str) -> NextDecomposingResult<'input> {
 		if let Some((cmavo, new_rest)) = rules::cmavo_minimal(rest) {
 			log::trace!("considering splitting into ({cmavo:?}, {new_rest:?}), pending post_word check");
 			if !new_rest.is_empty() && !new_rest.chars().all(|ch| ch == ',') && Self::post_word(new_rest)
@@ -91,10 +91,10 @@ impl<'a> Decomposer<'a> {
 	}
 }
 
-impl<'a> Iterator for Decomposer<'a> {
-	type Item = Span<'a>;
+impl<'input> Iterator for Decomposer<'input> {
+	type Item = Span;
 
-	fn next(&mut self) -> Option<Span<'a>> {
+	fn next(&mut self) -> Option<Span> {
 		loop {
 			match self.state {
 				State::Normal => match {
@@ -133,8 +133,8 @@ impl<'a> Iterator for Decomposer<'a> {
 
 impl std::iter::FusedIterator for Decomposer<'_> {}
 
-impl<'a> Decomposer<'a> {
-	pub fn next_no_decomposition(&mut self) -> Option<Span<'a>> {
+impl<'input> Decomposer<'input> {
+	pub fn next_no_decomposition(&mut self) -> Option<Span> {
 		match self.state {
 			State::Normal => self.split.next(),
 			State::Decomposing { rest } => {
@@ -146,12 +146,12 @@ impl<'a> Decomposer<'a> {
 	}
 }
 
-fn _assert_iterator<'a>() {
-	fn do_assert<'a, I: Iterator<Item = Span<'a>>>() {}
-	do_assert::<Decomposer<'a>>();
+fn _assert_iterator<'input>() {
+	fn do_assert<I: Iterator<Item = Span>>() {}
+	do_assert::<Decomposer<'input>>();
 }
 
-pub fn decompose<'a>(input: &'a str) -> Decomposer<'a> {
+pub fn decompose<'input>(input: &'input str) -> Decomposer<'input> {
 	log::debug!("decomposing {input:?}");
 	Decomposer {
 		input_start: input.as_ptr(),

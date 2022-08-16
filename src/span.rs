@@ -1,101 +1,123 @@
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
-
 pub type Location = u32;
 
-#[derive(Clone, Copy)]
-pub struct Span<'a> {
-	start: Location,
-	end: Location,
-	belongs_to: PhantomData<&'a str>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Span {
+	pub start: Location,
+	pub end: Location,
 }
 
-// XXX: use `#[debug(skip)]` if/when it lands
-impl Debug for Span<'_> {
-	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-		f.debug_struct("Span")
-			.field("start", &self.start)
-			.field("end", &self.end)
-			.finish()
+impl Span {
+	#[must_use]
+	pub fn new(start: Location, end: Location) -> Self {
+		assert!(end >= start);
+		Self { start, end }
 	}
-}
 
-impl<'a> Span<'a> {
-	pub fn new(_input: &'a str, start: Location, end: Location) -> Self {
-		let ret = Self {
+	#[must_use]
+	pub fn at(start: Location, len: u32) -> Self {
+		Self {
 			start,
-			end,
-			belongs_to: PhantomData,
-		};
-		ret.assert_valid();
-		ret
-	}
-
-	#[inline(always)]
-	pub fn start(self) -> Location {
-		self.start
-	}
-
-	#[inline(always)]
-	pub fn end(self) -> Location {
-		self.end
+			end: start + len,
+		}
 	}
 
 	#[inline]
+	#[must_use]
 	pub fn len(self) -> u32 {
 		self.end - self.start
 	}
 
-	pub fn between(before: Self, after: Self) -> Self {
-		let ret = Self {
-			start: before.end,
-			end: after.start,
-			belongs_to: PhantomData,
-		};
-		ret.assert_valid();
-		ret
+	#[inline]
+	#[must_use]
+	pub fn is_empty(self) -> bool {
+		self.end == self.start
 	}
 
-	pub fn entire_slice(slice: &'a str) -> Self {
-		Self {
-			start: 0,
-			end: Location::try_from(slice.len()).unwrap(),
-			belongs_to: PhantomData,
+	#[must_use]
+	pub fn between(before: Self, after: Self) -> Option<Self> {
+		if before.overlaps_with(after) || before.end >= after.start {
+			None
+		} else {
+			Some(Self {
+				start: before.end,
+				end: after.start,
+			})
 		}
 	}
 
-	pub fn from_embedded_slice(outer_start_ptr: *const u8, embedded: &'a str) -> Self {
+	#[must_use]
+	pub fn entire_slice(input: &str) -> Self {
+		Self {
+			start: 0,
+			end: Location::try_from(input.len()).unwrap(),
+		}
+	}
+
+	#[must_use]
+	pub fn from_embedded_slice(outer_start_ptr: *const u8, embedded: &str) -> Self {
 		let inner_start_ptr = embedded.as_ptr();
 		assert!(inner_start_ptr >= outer_start_ptr);
 		let start = Location::try_from(inner_start_ptr as usize - outer_start_ptr as usize).unwrap();
 		let end = start + u32::try_from(embedded.len()).unwrap();
-		Self {
-			start,
-			end,
-			belongs_to: PhantomData,
+		Self { start, end }
+	}
+
+	#[must_use]
+	pub fn slice(self, text: &str) -> Option<&str> {
+		text.get(self.start as usize..self.end as usize)
+	}
+
+	#[must_use]
+	pub fn slice_after(self, text: &str) -> Option<&str> {
+		text.get(self.end as usize..)
+	}
+
+	#[must_use]
+	pub fn slice_before(self, text: &str) -> Option<&str> {
+		text.get(..self.start as usize)
+	}
+
+	#[must_use]
+	pub fn contains(self, location: Location) -> bool {
+		(self.start..self.end).contains(&location)
+	}
+
+	#[must_use]
+	pub fn overlaps_with(self, other: Self) -> bool {
+		fn non_commutative_helper(left: Span, right: Span) -> bool {
+			// check for empty spans immediately before or after the other span
+			if left.is_empty() && (right.end == left.start || right.start == left.start) {
+				false
+			} else {
+				left.contains(right.start) || left.contains(right.end - 1)
+			}
 		}
-	}
 
-	pub fn slice(self, text: &'a str) -> Option<&'a str> {
-		self.slice_arbitrary(text)
+		non_commutative_helper(self, other) || non_commutative_helper(other, self)
 	}
+}
 
-	/// Slice data that may not belong to this span.
-	pub fn slice_arbitrary(self, text: &str) -> Option<&str> {
-		text.get(usize::try_from(self.start).unwrap()..usize::try_from(self.end).unwrap())
-	}
-
-	/// Get the part of the input that is after the end of this span
-	pub fn slice_after(self, text: &'a str) -> Option<&'a str> {
-		self.slice_after_arbitrary(text)
-	}
-
-	/// The same as `slice_after`, but works on data that may not belong to this span
-	pub fn slice_after_arbitrary(self, text: &str) -> Option<&str> {
-		text.get(usize::try_from(self.end).unwrap()..)
-	}
-
-	fn assert_valid(self) {
-		assert!(self.start < self.end);
-	}
+#[test]
+fn overlaps_with() {
+	let span = Span::new(10, 20);
+	// fully before
+	assert_eq!(Span::new(0, 5).overlaps_with(span), false);
+	// partially overlapping before
+	assert_eq!(Span::new(5, 12).overlaps_with(span), true,);
+	// fully within
+	assert_eq!(Span::new(12, 18).overlaps_with(span), true);
+	// empty within
+	assert_eq!(Span::at(12, 0).overlaps_with(span), true);
+	// partially overlapping after
+	assert_eq!(Span::new(18, 22).overlaps_with(span), true);
+	// fully after
+	assert_eq!(Span::new(22, 24).overlaps_with(span), false);
+	// back-to-back before
+	assert_eq!(Span::new(0, 10).overlaps_with(span), false);
+	// back-to-back after
+	assert_eq!(Span::new(20, 30).overlaps_with(span), false);
+	// empty immediately before
+	assert_eq!(Span::at(10, 0).overlaps_with(span), false);
+	// empty immediately after
+	assert_eq!(Span::at(20, 0).overlaps_with(span), false);
 }

@@ -269,7 +269,7 @@ impl Selmaho {
 				| "pa'e" | "zu'u" | "re'e" | "ro'a" | "ro'e" | "ro'i" | "ro'o" | "ro'u" | "ri'e"
 				| "se'a" | "be'u" | "se'i" | "vu'e" | "fu'i" | "ga'i" | "ju'o" | "le'o" | "dai"
 				| "zo'o" | "xu" | "ge'e" | "ki'a" | "bu'o" | "xu'o" => Self::Ui,
-				"u'ai" | "uai" | "uau" | "ue'i" | "ui'i" | "uo'o" | "uu'i" | "ia'u" | "ie'e" | "ie'i"
+				"fai'a" | "rau'o" | "si'ai" | "tai'a" | "tei'i" | "tei'o" | "uau'o" | "ue'e" | "uei'e" | "ui'a" | "ui'o" | "va'u'au" | "fu'ei'a" | "fu'ei'e" | "fu'ei'i" | "fi'ei'o" | "fu'ei'u" | "ii'au" | "au'o" | "a'u'u" | "ca'e'ei" | "ci'ai" | "cu'ei" | "cu'ei'a" | "cu'ei'ai" | "cu'ei'e" | "cu'ei'ei" | "cu'ei'i" | "cu'ei'o" | "cu'ei'oi" | "cu'ei'u" | "cu'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u" | "coi'o'e" | "doi'au" | "e'au" | "ei'u" | "mu'au'oi" | "oi'a" | "pau'ai" | "pau'i" | "zei'i" | "su'a'a" | "zi'ei" | "u'ai" | "uai" | "uau" | "ue'i" | "ui'i" | "uo'o" | "uu'i" | "ia'u" | "ie'e" | "ie'i"
 				| "a'au" | "ai'i" | "au'u" | "ci'au'u'au'i" | "e'ei" | "ei'au" | "ei'e" | "ei'i"
 				| "mau'u" | "mi'au" | "ne'au" | "oi'o" | "oi'u" | "ri'ai" | "sei'i" | "si'au" | "jei'u"
 				| "ju'oi" | "kai'a" | "kai'e" | "ki'au" | "lai'i" | "moi'i" | "pei'e" | "za'au"

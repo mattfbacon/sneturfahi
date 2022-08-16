@@ -5,7 +5,7 @@ fn main() {
 
 	let action = std::env::args().nth(1).expect("need action");
 	match action.as_str() {
-		"parse" => parse(),
+		// "parse" => parse(),
 		"lex" => lex(),
 		"decompose" => decompose(),
 		"decompose-stdin" => {
@@ -39,6 +39,7 @@ fn decompose() {
 	})
 }
 
+/*
 fn parse() {
 	repl(|input| {
 		let lexed = sneturfahi::lex(input);
@@ -48,6 +49,7 @@ fn parse() {
 		}
 	})
 }
+*/
 
 fn lex() {
 	repl(|input| {

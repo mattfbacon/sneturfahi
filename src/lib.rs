@@ -24,8 +24,8 @@ pub use decompose::decompose;
 pub mod lex;
 pub use lex::lex;
 
-pub mod parse;
-pub use parse::parse;
+// pub mod parse;
+// pub use parse::parse;
 
 pub mod span;
 pub use span::Span;

@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 #![feature(type_alias_impl_trait)]
 #![deny(
 	absolute_paths_not_starting_with_crate,
@@ -14,6 +15,10 @@
 	rust_2018_idioms
 )]
 #![warn(clippy::pedantic, missing_docs, missing_copy_implementations)]
+#![allow(
+	clippy::tabs_in_doc_comments, // rustfmt formats our doc comments and we use tabs
+	clippy::redundant_else, // sometimes it's clearer
+)]
 #![forbid(unsafe_code)]
 
 mod rules;

@@ -1,4 +1,6 @@
-//! This module centers around [Token] and [Selmaho]. [Token] is the type yielded by [lex] (well, actually, a `Result` where the `Ok` type is [Token]).
+//! The token type [Token] and the token kind type [Selmaho].
+//!
+//! [Token] is the type yielded by [lex] (well, actually, a `Result` where the `Ok` type is [Token]).
 //!
 //! [lex]: crate::lex::lex
 
@@ -149,7 +151,7 @@ pub enum Selmaho {
 	Dehau, // treated like UI
 	Dohoi,
 	Fauha,  // treated like UI
-	Fahoho, // treated like FAhO, but causes the parser to panic
+	Fahoho, // treated like FAhO
 	Fihoi,
 	Foihe,
 	Gahuhau,
@@ -260,7 +262,7 @@ pub enum Selmaho {
 
 	// non-cmavo selmaho
 
-	// all three of these are brivla and as such are treated the same by parsers, but the distinction may be helpful for other users of the lexer
+	// the first three are are brivla and as such are treated the same by parsers, but the distinction may be helpful for other users of the lexer
 	Gismu,
 	Fuhivla,
 	Lujvo,
@@ -288,6 +290,8 @@ impl Selmaho {
 	/// assert!(!Selmaho::Gismu.is_fundamentally_experimental());
 	/// assert!(!Selmaho::ZoiDelimiter.is_fundamentally_experimental());
 	/// ```
+	#[must_use]
+	#[allow(clippy::too_many_lines)]
 	pub fn is_fundamentally_experimental(self) -> bool {
 		// brevity is sacrificed on the altar of exhaustiveness
 		match self {
@@ -543,17 +547,17 @@ impl Selmaho {
 	}
 }
 
-/// The token yielded by the [lex] iterator.
+/// The token yielded by the [`lex`] iterator.
 ///
-/// Note: this type implements [PartialEq] and [Eq], but they compare the spans of the tokens, not the tokens themselves.
+/// Note: this type implements [`PartialEq`] and [`Eq`], but they compare the spans of the tokens, not the tokens themselves.
 ///
 /// [lex]: crate::lex::lex
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
 	/// For cmavo, if that cmavo is experimental.
 	pub experimental: bool,
-	/// The position of the token within the input. This is also used to get the actual content of the token.
-	pub span: Span,
 	/// The type of the token.
 	pub selmaho: Selmaho,
+	/// The position of the token within the input. This is also used to get the actual content of the token.
+	pub span: Span,
 }

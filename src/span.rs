@@ -1,8 +1,14 @@
-/// A location within the input.
-/// This is a `u32` rather than a `usize` since we don't really need the capacity that `usize` would provide.
+//! [`Span`] and [`Location`], for referring to locations and regions of input.
+
+/// A location within some input.
+///
+/// Locations refer to byte indices within strings.
+/// Locations are `u32` rather than `usize` since we don't really need the capacity that `usize` would provide.
 pub type Location = u32;
 
-/// A region within the input, similar to [std::ops::Range] but less awful.
+/// A region within some input.
+///
+/// Similar to [`std::ops::Range`] but less awful.
 /// It can be resolved to a subslice of the input, but also provides other useful utilities.
 #[cfg_attr(
 	target_pointer_width = "64",
@@ -18,6 +24,10 @@ pub struct Span {
 
 impl Span {
 	/// Create a new span that starts at `start` and ends at `end`.
+	///
+	/// # Panics
+	///
+	/// Panics if `end` is less than `start`.
 	///
 	/// # Examples
 	///
@@ -113,6 +123,10 @@ impl Span {
 	/// Create a span that covers all of `input`.
 	/// Equivalent to `Span::new(input, 0, u32::try_from(input.len()).unwrap())`.
 	///
+	/// # Panics
+	///
+	/// Panics if the string is longer than [`u32::MAX`] bytes.
+	///
 	/// # Examples
 	///
 	/// ```rust
@@ -131,8 +145,12 @@ impl Span {
 	}
 
 	/// Create a span that covers `embedded` based on its position relative to `outer_start_ptr`.
-	/// Returns `None` if `outer_start_ptr` is after the start of `embedded`.
+	///
 	/// The intended use is to store a pointer to the start of the input, and then use this function to get spans while processing embedded slices of that input.
+	///
+	/// # Panics
+	///
+	/// Panics if `outer_start_ptr` is after the start of `embedded`.
 	///
 	/// # Examples
 	///
@@ -156,6 +174,7 @@ impl Span {
 	}
 
 	/// Get the substring of `text` that this span delineates.
+	///
 	/// Returns `None` if the span is out of the bounds of `text`.
 	///
 	/// # Examples

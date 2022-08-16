@@ -1,3 +1,7 @@
+//! Tokenization of Lojban text, including handling of delimited and pause-delimited quotes.
+//!
+//! This module centers around the [lex] function, which is heavily documented.
+
 use std::num::NonZeroU8;
 
 use crate::span::Span;
@@ -7,7 +11,9 @@ pub mod token;
 
 pub use token::{Selmaho, Token};
 
-/// Reasons why lexing can fail. If an error occurs, lexing will terminate and you should not continue calling `next` on the lexer.
+/// Reasons why lexing can fail.
+///
+/// If an error occurs, lexing will terminate and you should not continue calling `next` on the lexer.
 #[derive(Debug, Clone, Copy, thiserror::Error)]
 pub enum Error {
 	/// Expected a separator after delimited quote initiator but found the end of input.
@@ -112,6 +118,11 @@ pub enum Error {
 	},
 }
 
+/// A [`Result`] where the `E` type defaults to [`Error`].
+///
+/// [Result]: std::result::Result
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
 #[derive(Clone, Copy)]
 struct DelimitedQuoteState {
 	how_many: NonZeroU8,
@@ -151,111 +162,133 @@ struct Lexer<'input> {
 	state: State,
 }
 
+#[allow(clippy::unnecessary_wraps)] // consistency
+impl Lexer<'_> {
+	fn next_normal(&mut self) -> Option<Result<Token>> {
+		let span = self.words.next()?;
+		let word = span.slice(self.input).unwrap();
+		let (selmaho, experimental) = Selmaho::classify(word);
+		match selmaho {
+			Selmaho::Zoi | Selmaho::Muhoi | Selmaho::Sohehai => {
+				let how_many = if selmaho == Selmaho::Sohehai { 2 } else { 1 };
+				self.state = State::DelimitedQuote(DelimitedQuoteState {
+					how_many: NonZeroU8::new(how_many).unwrap(),
+					initiator_span: span,
+					is_first: true,
+					starting_delimiter_span: if let Some(span) = self.words.next() {
+						span
+					} else {
+						self.state = State::Errored;
+						return Some(Err(Error::DelimitedQuoteMissingSeparator {
+							initiator_span: span,
+						}));
+					},
+				});
+			}
+			Selmaho::Mehoi | Selmaho::Zohoi | Selmaho::Dohoi => {
+				self.state = State::PauseDelimitedQuote {
+					initiator_span: span,
+				};
+			}
+			_ => (),
+		}
+		Some(Ok(Token {
+			experimental,
+			selmaho,
+			span,
+		}))
+	}
+
+	fn next_delimited_quote(
+		&mut self,
+		quote_state @ DelimitedQuoteState {
+			is_first,
+			starting_delimiter_span,
+			initiator_span,
+			how_many: _,
+		}: DelimitedQuoteState,
+	) -> Option<Result<Token>> {
+		let mut start_of_quote = None;
+		let mut end_of_quote = None;
+		Some(loop {
+			if let Some(word_span) = self.words.next_no_decomposition() {
+				let possible_ending_delimiter = word_span.slice(self.input).unwrap();
+				let starting_delimiter = starting_delimiter_span.slice(self.input).unwrap();
+				if starting_delimiter
+					.chars()
+					.filter(|&ch| ch != ',')
+					.eq(possible_ending_delimiter.chars().filter(|&ch| ch != ','))
+				{
+					let ending_delimiter_span = word_span;
+					let start_token = Token {
+						experimental: false,
+						span: starting_delimiter_span,
+						selmaho: Selmaho::ZoiDelimiter,
+					};
+					let text_token = (|| {
+						Some(Token {
+							experimental: false,
+							span: Span::new(start_of_quote?, end_of_quote?),
+							selmaho: Selmaho::AnyText,
+						})
+					})();
+					let end_token = Token {
+						experimental: false,
+						span: ending_delimiter_span,
+						selmaho: Selmaho::ZoiDelimiter,
+					};
+					let next_quote_state = quote_state.next(ending_delimiter_span);
+					if is_first {
+						self.state = text_token.map_or(
+							State::OneMoreTokenThen(end_token, next_quote_state),
+							|text_token| State::TwoMoreTokensThen([text_token, end_token], next_quote_state),
+						);
+						break Ok(start_token);
+					} else if let Some(text_token) = text_token {
+						self.state = State::OneMoreTokenThen(end_token, next_quote_state);
+						break Ok(text_token);
+					} else {
+						self.state = next_quote_state.map_or(State::Normal, State::DelimitedQuote);
+						break Ok(end_token);
+					}
+				} else {
+					let quote_part = word_span;
+					start_of_quote.get_or_insert(quote_part.start);
+					end_of_quote = Some(quote_part.end);
+				}
+			} else {
+				self.state = State::Errored;
+				break Err(Error::DelimitedQuoteUnclosed {
+					initiator_span,
+					starting_delimiter_span,
+				});
+			}
+		})
+	}
+
+	fn next_pause_delimited_quote(&mut self, initiator_span: Span) -> Option<Result<Token>> {
+		let quoted_text_span = if let Some(word) = self.words.next_no_decomposition() {
+			word
+		} else {
+			self.state = State::Errored;
+			return Some(Err(Error::PauseDelimitedQuoteEof { initiator_span }));
+		};
+		self.state = State::Normal;
+		Some(Ok(Token {
+			experimental: false,
+			selmaho: Selmaho::AnyText,
+			span: quoted_text_span,
+		}))
+	}
+}
+
 impl Iterator for Lexer<'_> {
-	type Item = Result<Token, Error>;
+	type Item = Result<Token>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.state {
-			State::Normal => {
-				let span = self.words.next()?;
-				let word = span.slice(self.input).unwrap();
-				let (selmaho, experimental) = Selmaho::classify(word);
-				match selmaho {
-					Selmaho::Zoi | Selmaho::Muhoi | Selmaho::Sohehai => {
-						let how_many = if selmaho == Selmaho::Sohehai { 2 } else { 1 };
-						self.state = State::DelimitedQuote(DelimitedQuoteState {
-							how_many: NonZeroU8::new(how_many).unwrap(),
-							initiator_span: span,
-							is_first: true,
-							starting_delimiter_span: match self.words.next() {
-								Some(span) => span,
-								None => {
-									self.state = State::Errored;
-									return Some(Err(Error::DelimitedQuoteMissingSeparator {
-										initiator_span: span,
-									}));
-								}
-							},
-						});
-					}
-					Selmaho::Mehoi | Selmaho::Zohoi | Selmaho::Dohoi => {
-						self.state = State::PauseDelimitedQuote {
-							initiator_span: span,
-						};
-					}
-					_ => (),
-				}
-				Some(Ok(Token {
-					selmaho,
-					experimental,
-					span,
-				}))
-			}
-			State::DelimitedQuote(
-				quote_state @ DelimitedQuoteState {
-					is_first,
-					starting_delimiter_span,
-					initiator_span,
-					how_many: _,
-				},
-			) => {
-				let mut start_of_quote = None;
-				let mut end_of_quote = None;
-				Some(loop {
-					if let Some(word_span) = self.words.next_no_decomposition() {
-						let possible_ending_delimiter = word_span.slice(self.input).unwrap();
-						let starting_delimiter = starting_delimiter_span.slice(self.input).unwrap();
-						if starting_delimiter
-							.chars()
-							.filter(|&ch| ch != ',')
-							.eq(possible_ending_delimiter.chars().filter(|&ch| ch != ','))
-						{
-							let ending_delimiter_span = word_span;
-							let start_token = Token {
-								experimental: false,
-								span: starting_delimiter_span,
-								selmaho: Selmaho::ZoiDelimiter,
-							};
-							let text_token = (|| {
-								Some(Token {
-									experimental: false,
-									span: Span::new(start_of_quote?, end_of_quote?),
-									selmaho: Selmaho::AnyText,
-								})
-							})();
-							let end_token = Token {
-								experimental: false,
-								span: ending_delimiter_span,
-								selmaho: Selmaho::ZoiDelimiter,
-							};
-							let next_quote_state = quote_state.next(ending_delimiter_span);
-							if is_first {
-								self.state = text_token.map_or(
-									State::OneMoreTokenThen(end_token, next_quote_state),
-									|text_token| State::TwoMoreTokensThen([text_token, end_token], next_quote_state),
-								);
-								break Ok(start_token);
-							} else if let Some(text_token) = text_token {
-								self.state = State::OneMoreTokenThen(end_token, next_quote_state);
-								break Ok(text_token);
-							} else {
-								self.state = next_quote_state.map_or(State::Normal, State::DelimitedQuote);
-								break Ok(end_token);
-							}
-						} else {
-							let quote_part = word_span;
-							start_of_quote.get_or_insert(quote_part.start);
-							end_of_quote = Some(quote_part.end);
-						}
-					} else {
-						self.state = State::Errored;
-						break Err(Error::DelimitedQuoteUnclosed {
-							initiator_span,
-							starting_delimiter_span,
-						});
-					}
-				})
-			}
+			State::Normal => self.next_normal(),
+			State::DelimitedQuote(quote_state) => self.next_delimited_quote(quote_state),
 			State::TwoMoreTokensThen([text_token, end_token], then) => {
 				self.state = State::OneMoreTokenThen(end_token, then);
 				Some(Ok(text_token))
@@ -265,19 +298,7 @@ impl Iterator for Lexer<'_> {
 				Some(Ok(end_token))
 			}
 			State::PauseDelimitedQuote { initiator_span } => {
-				let quoted_text_span = match self.words.next_no_decomposition() {
-					Some(word) => word,
-					None => {
-						self.state = State::Errored;
-						return Some(Err(Error::PauseDelimitedQuoteEof { initiator_span }));
-					}
-				};
-				self.state = State::Normal;
-				Some(Ok(Token {
-					experimental: false,
-					selmaho: Selmaho::AnyText,
-					span: quoted_text_span,
-				}))
+				self.next_pause_delimited_quote(initiator_span)
 			}
 			State::Errored => None,
 		}
@@ -286,7 +307,8 @@ impl Iterator for Lexer<'_> {
 
 impl std::iter::FusedIterator for Lexer<'_> {}
 
-/// Lex the Lojban text into a sequence of [Token]s, with an [Error] possibly occurring.
+#[allow(clippy::doc_markdown)] // it incorrectly flags selmaho like MEhOI as code
+/// Lex the Lojban text into a sequence of [`Token`]s, with an [`Error`] possibly occurring.
 ///
 /// Typical usage of this function involves collecting to `Result<Vec<_>, _>`, where the first `_` will be inferred to be `Token` and the second `Error`:
 ///
@@ -390,7 +412,7 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 /// assert_eq!(result.unwrap(), [Selmaho::Mehoi, Selmaho::AnyText]);
 /// ```
 ///
-/// The lexer also propagates the feature of `Selmaho::classify` of identifying experimental cmavo, through the `experimental` field of the yielded [Token]s:
+/// The lexer also propagates the feature of `Selmaho::classify` of identifying experimental cmavo, through the `experimental` field of the yielded [`Token`]s:
 ///
 /// ```rust
 /// # use sneturfahi::lex::{lex, Selmaho};
@@ -402,9 +424,7 @@ impl std::iter::FusedIterator for Lexer<'_> {}
 /// ```
 ///
 /// After an `Err` variant is yielded, the lexer iterator is fused, that is, it will yield `None` indefinitely. This may help with certain aspects of implementations.
-pub fn lex<'input, 'config>(
-	input: &'input str,
-) -> impl Iterator<Item = Result<Token, Error>> + std::iter::FusedIterator + 'input {
+pub fn lex(input: &str) -> impl Iterator<Item = Result<Token>> + std::iter::FusedIterator + '_ {
 	Lexer {
 		words: crate::decompose(input),
 		input,

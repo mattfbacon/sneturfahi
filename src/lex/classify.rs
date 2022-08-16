@@ -23,7 +23,7 @@ fn transform_for_direct_cmavo_check<'a>(word: &str, buf: &'a mut [u8]) -> Option
 	if reached_index >= buf.len() {
 		None
 	} else {
-		Some(std::str::from_utf8(&buf[..reached_index + 1]).unwrap())
+		Some(std::str::from_utf8(&buf[..=reached_index]).unwrap())
 	}
 }
 
@@ -46,13 +46,15 @@ impl Selmaho {
 		}
 	}
 
-	/// Determine the [Selmaho] of a word.
-	/// This word should already be decomposed; if you need to decompose words, see the [decompose] module.
-	/// However, if you're doing that, then you might as well use the included lexer directly; see the [lex] module.
+	/// Determine the [`Selmaho`] of a word.
+	/// This word should already be decomposed; if you need to decompose words, see the [`decompose`] module.
+	/// However, if you're doing that, then you might as well use the included lexer directly; see the [`lex`] module.
 	/// Also returns, for cmavo selmaho, if the cmavo was experimental.
 	///
 	/// [decompose]: mod@crate::decompose
 	/// [lex]: mod@crate::lex
+	#[must_use]
+	#[allow(clippy::too_many_lines)] // giant match block
 	pub fn classify(word: &str) -> (Self, bool) {
 		let mut direct_cmavo_check_buf = [0u8; 16];
 		let direct_cmavo_check = transform_for_direct_cmavo_check(word, &mut direct_cmavo_check_buf);
@@ -295,7 +297,7 @@ impl Selmaho {
 				"vu'o" => Self::Vuho,
 				"xi" => Self::Xi,
 				"fau'e" | "te'ai" | "xi'e" | "xi'i" => experimental!(Self::Xi),
-				word if word.len() >= 1 && word.chars().all(|ch| ch == 'y') => Self::Y,
+				word if !word.is_empty() && word.chars().all(|ch| ch == 'y') => Self::Y,
 				"ie'o" | "ko'o'o'o'o" => experimental!(Self::Y),
 				"za'o" | "ba'o" | "pu'o" | "ca'o" | "co'a" | "co'i" | "co'u" | "de'a" | "di'a" | "mo'u" => {
 					Self::Zaho

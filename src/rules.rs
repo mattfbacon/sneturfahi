@@ -1,4 +1,6 @@
 #![allow(dead_code, unused_macros)]
+#![allow(clippy::unnecessary_wraps)] // consistency
+
 use std::cell::Cell;
 
 use debug_rule::debug_rule;
@@ -142,10 +144,10 @@ pub fn eof(input: &str) -> Option<(&str, &str)> {
 	}
 }
 
-fn one_of<'chs>(chs: &'chs str) -> impl (for<'a> Fn(&'a str) -> ParseResult<'a>) + 'chs {
+fn one_of(chs: &str) -> impl (for<'a> Fn(&'a str) -> ParseResult<'a>) + '_ {
 	move |input| {
 		let mut chars_orig = input.chars();
-		let first = chars_orig.by_ref().filter(|&ch| ch != ',').next()?;
+		let first = chars_orig.find(|&ch| ch != ',')?;
 		let remaining_offset = chars_orig.as_str().as_ptr() as usize - input.as_ptr() as usize;
 		if chs.contains(first) {
 			Some(input.split_at(remaining_offset))
@@ -734,14 +736,14 @@ pub fn cmavo(input: &str) -> ParseResult<'_> {
 	cmavo_semi_minimal(input)
 }
 
-/// preconditions: !cmevla
-/// postconditions: &post_word
+/// preconditions: `!cmevla`
+/// postconditions: `&post_word`
 pub fn cmavo_minimal(input: &str) -> ParseResult<'_> {
 	not!(cvcy_lujvo(input));
 	cmavo_form(input)
 }
 
-/// preconditions: !cmevla
+/// preconditions: `!cmevla`
 pub fn cmavo_semi_minimal(input: &str) -> ParseResult<'_> {
 	cmavo_minimal(input).and_peek(post_word)
 }

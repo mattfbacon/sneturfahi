@@ -1,11 +1,16 @@
+//! Decomposition of Lojban text into morphemes.
+//!
+//! This module centers around the [decompose] function, which is heavily documented.
+
 // based loosely on https://github.com/lojban/camxes-py/blob/690706f50abf080d746c08da641c11905334298c/camxes_py/parsers/camxes_ilmen.peg
 
 use crate::rules;
 use crate::span::Span;
 
 /// The condition to be used for splitting and/or trimming Lojban text in general.
+///
 /// It matches whitespace and pauses, as well as a couple of other "pause-like" characters.
-/// Note that this function does not perform any kind of decomposition, only naive splitting. Use [decompose] if you need full decomposition.
+/// Note that this function does not perform any kind of decomposition, only naive splitting. Use [`decompose`] if you need full decomposition.
 ///
 /// # Examples
 ///
@@ -26,22 +31,24 @@ use crate::span::Span;
 /// let trimmed = text_surrounded_by_junk.trim_matches(split_or_trim_condition);
 /// assert_eq!(trimmed, "text");
 /// ```
+#[must_use]
 pub fn split_or_trim_condition(ch: char) -> bool {
 	".\t\n\r?! ".contains(ch)
 }
 
+#[must_use]
 fn is_consonant(ch: char) -> bool {
 	"bcdfgjklmnprstvxz".contains(ch)
 }
 
 // while the input should never be empty, it may be only commas.
 // in that case calling `next` on the iterator would in fact yield `None`, so we need to handle that case with `map_or` rather than `unwrap`ping.
+#[must_use]
 fn simple_cmevla_check(input: &str) -> bool {
 	input
 		.chars()
 		.rev()
-		.filter(|&ch| ch != ',')
-		.next()
+		.find(|&ch| ch != ',')
 		.map_or(false, is_consonant)
 }
 
@@ -54,7 +61,8 @@ enum State<'input> {
 }
 
 /// The iterator used for decomposition.
-/// The public way to create an instance of this type is [decompose], and the documentation for decomposition in general is there.
+///
+/// The public way to create an instance of this type is [`decompose`], and the documentation for decomposition in general is there.
 pub struct Decomposer<'input> {
 	input_start: *const u8,
 	split: Input<'input>,
@@ -78,6 +86,7 @@ enum NextDecomposingResult<'input> {
 }
 
 impl<'input> Decomposer<'input> {
+	#[must_use]
 	fn post_word(input: &str) -> bool {
 		rules::nucleus(input).is_none()
 			&& (rules::gismu(input).is_some()
@@ -86,6 +95,7 @@ impl<'input> Decomposer<'input> {
 				|| rules::cmavo_minimal(input).is_some())
 	}
 
+	#[must_use]
 	fn next_normal(&self, chunk: &'input str) -> NextNormalResult<'input> {
 		log::trace!("chunk of input is {chunk:?}");
 		if simple_cmevla_check(chunk) {
@@ -97,6 +107,7 @@ impl<'input> Decomposer<'input> {
 		}
 	}
 
+	#[must_use]
 	fn next_decomposing(&self, rest: &'input str) -> NextDecomposingResult<'input> {
 		if let Some((cmavo, new_rest)) = rules::cmavo_minimal(rest) {
 			log::trace!("considering splitting into ({cmavo:?}, {new_rest:?}), pending post_word check");
@@ -110,10 +121,10 @@ impl<'input> Decomposer<'input> {
 		}
 
 		let rest = rest.trim_end_matches(|ch| ch == ',');
-		if !rest.is_empty() {
-			NextDecomposingResult::Break(Span::from_embedded_slice(self.input_start, rest))
-		} else {
+		if rest.is_empty() {
 			NextDecomposingResult::BreakWithNext
+		} else {
+			NextDecomposingResult::Break(Span::from_embedded_slice(self.input_start, rest))
 		}
 	}
 }
@@ -125,11 +136,7 @@ impl<'input> Iterator for Decomposer<'input> {
 		loop {
 			match self.state {
 				State::Normal => match {
-					let chunk = self
-						.split
-						.by_ref()
-						.filter(|chunk| !chunk.is_empty())
-						.next()?;
+					let chunk = self.split.find(|chunk| !chunk.is_empty())?;
 					self.next_normal(chunk)
 				} {
 					NextNormalResult::YieldDirectly(span) => break Some(span),
@@ -162,7 +169,8 @@ impl std::iter::FusedIterator for Decomposer<'_> {}
 
 impl<'input> Decomposer<'input> {
 	/// Get the next token without performing any decomposition.
-	/// It acts similarly to splitting with [split_or_trim_condition] but maintains the correct state of the decomposer so that normal, decomposing iteration can resume after using this function.
+	///
+	/// It acts similarly to splitting with [`split_or_trim_condition`] but maintains the correct state of the decomposer so that normal, decomposing iteration can resume after using this function.
 	///
 	/// # Examples
 	///
@@ -218,14 +226,15 @@ impl<'input> Decomposer<'input> {
 	}
 }
 
-fn _assert_iterator<'input>() {
+fn _assert_iterator() {
 	fn do_assert<I: Iterator<Item = Span>>() {}
-	do_assert::<Decomposer<'input>>();
+	do_assert::<Decomposer<'_>>();
 }
 
-/// Create a [Decomposer] to decompose the Lojban text `input` into morphemes.
-/// This does not do any classification of the decomposed morphemes; for that, use the utilities provided by the [lex] module.
-/// Note that the decomposer yields spans. For more information about spans including how to resolve them to text, see the [span] module.
+/// Create a [`Decomposer`] to decompose the Lojban text `input` into morphemes.
+///
+/// This does not do any classification of the decomposed morphemes; for that, use the utilities provided by the [`lex`] module.
+/// Note that the decomposer yields spans. For more information about spans including how to resolve them to text, see the [`span`] module.
 ///
 /// # Examples
 ///
@@ -262,7 +271,8 @@ fn _assert_iterator<'input>() {
 ///
 /// ```rust
 /// # use sneturfahi::decompose::decompose;
-/// let input = "alobrodan"; // "alobroda" would decompose as shown above
+/// // "alobroda" would decompose as shown above
+/// let input = "alobrodan";
 /// let decomposed: Vec<_> = decompose(input)
 /// 	.map(|span| span.slice(input).unwrap())
 /// 	.collect();
@@ -273,16 +283,28 @@ fn _assert_iterator<'input>() {
 ///
 /// ```rust
 /// # use sneturfahi::decompose::decompose;
-/// let input = "mablabigerku"; // "blabigerku" may look like two gismu but is actually one fuhivla
+/// // "blabigerku" may look like two gismu but is actually one fuhivla
+/// let input = "mablabigerku";
 /// let decomposed: Vec<_> = decompose(input)
 /// 	.map(|span| span.slice(input).unwrap())
 /// 	.collect();
 /// assert_eq!(decomposed, ["ma", "blabigerku"]);
 /// ```
 ///
+/// When iterating normally, the decomposer will not yield empty chunks:
+///
+/// ```rust
+/// # use sneturfahi::decompose::decompose;
+/// let input = "    mi     nelci        lo        canlu   ";
+/// assert!(decompose(input).all(|span| !span.is_empty()));
+/// ```
+///
+/// Note the [`Decomposer::next_no_decomposition`] method, which can yield empty chunks.
+///
 /// [lex]: mod@crate::lex
 /// [span]: crate::span
-pub fn decompose<'input>(input: &'input str) -> Decomposer<'input> {
+#[must_use]
+pub fn decompose(input: &str) -> Decomposer<'_> {
 	log::debug!("decomposing {input:?}");
 	Decomposer {
 		input_start: input.as_ptr(),

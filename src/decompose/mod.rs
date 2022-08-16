@@ -250,6 +250,9 @@ fn _assert_iterator<'input>() {
 /// let decomposed: Vec<_> = decompose(input).map(|span| span.slice(input).unwrap()).collect();
 /// assert_eq!(decomposed, ["ma", "blabigerku"]);
 /// ```
+///
+/// [lex]: mod@crate::lex
+/// [span]: crate::span
 pub fn decompose<'input>(input: &'input str) -> Decomposer<'input> {
 	log::debug!("decomposing {input:?}");
 	Decomposer {

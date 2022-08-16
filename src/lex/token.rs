@@ -1,6 +1,6 @@
 //! This module centers around [Token] and [Selmaho]. [Token] is the type yielded by [lex] (well, actually, a `Result` where the `Ok` type is [Token]).
 //!
-//! [lex]: crate::lex
+//! [lex]: crate::lex::lex
 
 use crate::span::Span;
 
@@ -547,7 +547,7 @@ impl Selmaho {
 ///
 /// Note: this type implements [PartialEq] and [Eq], but they compare the spans of the tokens, not the tokens themselves.
 ///
-/// [lex]: crate::lex
+/// [lex]: crate::lex::lex
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
 	/// For cmavo, if that cmavo is experimental.

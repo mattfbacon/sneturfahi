@@ -51,8 +51,8 @@ impl Selmaho {
 	/// However, if you're doing that, then you might as well use the included lexer directly; see the [lex] module.
 	/// Also returns, for cmavo selmaho, if the cmavo was experimental.
 	///
-	/// [decompose]: crate::decompose
-	/// [lex]: crate::lex
+	/// [decompose]: mod@crate::decompose
+	/// [lex]: mod@crate::lex
 	pub fn classify(word: &str) -> (Self, bool) {
 		let mut direct_cmavo_check_buf = [0u8; 16];
 		let direct_cmavo_check = transform_for_direct_cmavo_check(word, &mut direct_cmavo_check_buf);

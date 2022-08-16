@@ -275,15 +275,16 @@ impl Span {
 	/// ```
 	#[must_use]
 	pub fn overlaps_with(self, other: Self) -> bool {
+		fn non_commutative_empty_check(left: Span, right: Span) -> bool {
+			left.is_empty() && (right.end == left.start || right.start == left.start)
+		}
 		fn non_commutative_helper(left: Span, right: Span) -> bool {
-			// check for empty spans immediately before or after the other span
-			if left.is_empty() && (right.end == left.start || right.start == left.start) {
-				false
-			} else {
-				left.contains(right.start) || left.contains(right.end - 1)
-			}
+			left.contains(right.start) || left.contains(right.end - 1)
 		}
 
+		if non_commutative_empty_check(self, other) || non_commutative_empty_check(other, self) {
+			return false;
+		}
 		non_commutative_helper(self, other) || non_commutative_helper(other, self)
 	}
 }

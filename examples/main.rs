@@ -37,7 +37,7 @@ fn decompose() {
 			.map(|span| span.slice(input).unwrap())
 			.collect();
 		println!("Decomposed: {decomposed:?}");
-	})
+	});
 }
 
 /*

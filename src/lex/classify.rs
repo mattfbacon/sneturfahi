@@ -1,5 +1,5 @@
 use super::token::Selmaho;
-use crate::rules::ParseResultExt;
+use crate::rules::ParseResultExt as _;
 
 fn transform_for_direct_cmavo_check<'a>(word: &str, buf: &'a mut [u8]) -> Option<&'a str> {
 	let mut reached_index = 0;
@@ -31,17 +31,13 @@ impl Selmaho {
 	fn classify_generally(other: &str) -> Selmaho {
 		match other {
 			// the order here is important and matches that of `crate::rules::lojban_word` and `crate::rules::brivla_minimal`
-			other if crate::rules::cmevla(other).is_some() => Selmaho::Cmevla,
-			other
-				if crate::rules::cmavo_minimal(other)
-					.and_peek(crate::rules::eof)
-					.is_some() =>
-			{
+			other if crate::rules::cmevla(other).succeeded_and_consumed_all() => Selmaho::Cmevla,
+			other if crate::rules::cmavo_minimal(other).succeeded_and_consumed_all() => {
 				Selmaho::UnknownCmavo
 			}
-			other if crate::rules::gismu(other).is_some() => Selmaho::Gismu,
-			other if crate::rules::fuhivla(other).is_some() => Selmaho::Fuhivla,
-			other if crate::rules::lujvo_minimal(other).is_some() => Selmaho::Lujvo,
+			other if crate::rules::gismu(other).succeeded_and_consumed_all() => Selmaho::Gismu,
+			other if crate::rules::fuhivla(other).succeeded_and_consumed_all() => Selmaho::Fuhivla,
+			other if crate::rules::lujvo_minimal(other).succeeded_and_consumed_all() => Selmaho::Lujvo,
 			_ => Selmaho::AnyText,
 		}
 	}

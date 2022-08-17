@@ -123,6 +123,7 @@ type ParseResult<'a> = Option<(&'a str, &'a str)>;
 pub trait ParseResultExt {
 	fn and_peek(self, peeker: impl_parse!()) -> Self;
 	fn and_not(self, peeker: impl_parse!()) -> Self;
+	fn succeeded_and_consumed_all(self) -> bool;
 }
 
 impl ParseResultExt for ParseResult<'_> {
@@ -132,6 +133,10 @@ impl ParseResultExt for ParseResult<'_> {
 
 	fn and_not(self, peeker: impl_parse!()) -> Self {
 		self.filter(|(_ret, rest)| peeker(rest).is_none())
+	}
+
+	fn succeeded_and_consumed_all(self) -> bool {
+		self.map_or(false, |(_matched, rest)| rest.is_empty())
 	}
 }
 
@@ -277,7 +282,7 @@ fn vowel(input: &str) -> ParseResult<'_> {
 
 #[test]
 fn test_vowel() {
-	assert!(vowel(",,,,,a").is_some());
+	assert!(vowel(",,,,,a").succeeded_and_consumed_all());
 }
 
 #[debug_rule]
@@ -287,7 +292,7 @@ fn diphthong(input: &str) -> ParseResult<'_> {
 
 #[test]
 fn test_diphthong() {
-	assert!(diphthong(",,,,,a,,,,i").is_some());
+	assert!(diphthong(",,,,,a,,,,i").succeeded_and_consumed_all());
 }
 
 #[debug_rule]

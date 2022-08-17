@@ -320,23 +320,23 @@ impl Span {
 fn overlaps_with() {
 	let span = Span::new(10, 20);
 	// fully before
-	assert_eq!(Span::new(0, 5).overlaps_with(span), false);
+	assert!(!Span::new(0, 5).overlaps_with(span));
 	// partially overlapping before
-	assert_eq!(Span::new(5, 12).overlaps_with(span), true,);
+	assert!(Span::new(5, 12).overlaps_with(span));
 	// fully within
-	assert_eq!(Span::new(12, 18).overlaps_with(span), true);
+	assert!(Span::new(12, 18).overlaps_with(span));
 	// empty within
-	assert_eq!(Span::at(12, 0).overlaps_with(span), true);
+	assert!(Span::at(12, 0).overlaps_with(span));
 	// partially overlapping after
-	assert_eq!(Span::new(18, 22).overlaps_with(span), true);
+	assert!(Span::new(18, 22).overlaps_with(span));
 	// fully after
-	assert_eq!(Span::new(22, 24).overlaps_with(span), false);
+	assert!(!Span::new(22, 24).overlaps_with(span));
 	// back-to-back before
-	assert_eq!(Span::new(0, 10).overlaps_with(span), false);
+	assert!(!Span::new(0, 10).overlaps_with(span));
 	// back-to-back after
-	assert_eq!(Span::new(20, 30).overlaps_with(span), false);
+	assert!(!Span::new(20, 30).overlaps_with(span));
 	// empty immediately before
-	assert_eq!(Span::at(10, 0).overlaps_with(span), false);
+	assert!(!Span::at(10, 0).overlaps_with(span));
 	// empty immediately after
-	assert_eq!(Span::at(20, 0).overlaps_with(span), false);
+	assert!(!Span::at(20, 0).overlaps_with(span));
 }

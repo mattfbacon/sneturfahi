@@ -153,7 +153,7 @@ enum State {
 	TwoMoreTokensThen([Token; 2], Option<DelimitedQuoteState>),
 	OneMoreTokenThen(Token, Option<DelimitedQuoteState>),
 	PauseDelimitedQuote { initiator_span: Span },
-	Errored,
+	Done,
 }
 
 struct Lexer<'input> {
@@ -178,7 +178,7 @@ impl Lexer<'_> {
 					starting_delimiter_span: if let Some(span) = self.words.next() {
 						span
 					} else {
-						self.state = State::Errored;
+						self.state = State::Done;
 						return Some(Err(Error::DelimitedQuoteMissingSeparator {
 							initiator_span: span,
 						}));
@@ -189,6 +189,9 @@ impl Lexer<'_> {
 				self.state = State::PauseDelimitedQuote {
 					initiator_span: span,
 				};
+			}
+			Selmaho::Faho | Selmaho::Fahoho => {
+				self.state = State::Done;
 			}
 			_ => (),
 		}
@@ -257,7 +260,7 @@ impl Lexer<'_> {
 					end_of_quote = Some(quote_part.end);
 				}
 			} else {
-				self.state = State::Errored;
+				self.state = State::Done;
 				break Err(Error::DelimitedQuoteUnclosed {
 					initiator_span,
 					starting_delimiter_span,
@@ -270,7 +273,7 @@ impl Lexer<'_> {
 		let quoted_text_span = if let Some(word) = self.words.next_no_decomposition() {
 			word
 		} else {
-			self.state = State::Errored;
+			self.state = State::Done;
 			return Some(Err(Error::PauseDelimitedQuoteEof { initiator_span }));
 		};
 		self.state = State::Normal;
@@ -300,7 +303,7 @@ impl Iterator for Lexer<'_> {
 			State::PauseDelimitedQuote { initiator_span } => {
 				self.next_pause_delimited_quote(initiator_span)
 			}
-			State::Errored => None,
+			State::Done => None,
 		}
 	}
 }

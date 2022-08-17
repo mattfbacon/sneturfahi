@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![feature(type_alias_impl_trait)]
 #![deny(
 	absolute_paths_not_starting_with_crate,
 	future_incompatible,

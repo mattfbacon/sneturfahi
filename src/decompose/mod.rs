@@ -52,7 +52,7 @@ fn simple_cmevla_check(input: &str) -> bool {
 		.map_or(false, is_consonant)
 }
 
-type Input<'input> = impl Iterator<Item = &'input str>;
+type Input<'input> = std::str::Split<'input, fn(char) -> bool>;
 
 #[derive(Clone, Copy)]
 enum State<'input> {

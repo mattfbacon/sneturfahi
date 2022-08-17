@@ -28,7 +28,10 @@
                 "name": "Set up toolchain",
                 "run": "rustup toolchain install nightly --component rustfmt clippy",
               },
-              { "name": "Clippy", "run": "cargo clippy -- -Dwarnings" },
+              {
+                "name": "Clippy",
+                "run": "cargo clippy --all-targets --all-features -- -Dwarnings",
+              },
             ],
         },
       "tests":
@@ -42,7 +45,10 @@
                 "name": "Set up toolchain",
                 "run": "rustup toolchain install nightly --component rustfmt clippy",
               },
-              { "name": "Run tests", "run": "cargo test" },
+              {
+                "name": "Run tests",
+                "run": "cargo test --all-targets --all-features",
+              },
             ],
         },
     },

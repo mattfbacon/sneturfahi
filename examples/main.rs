@@ -7,7 +7,7 @@ fn main() {
 
 	let action = std::env::args().nth(1).expect("need action");
 	match action.as_str() {
-		// "parse" => parse(),
+		"parse" => parse(),
 		"lex" => lex(),
 		"decompose" => decompose(),
 		_ => panic!("unknown action"),
@@ -40,17 +40,22 @@ fn decompose() {
 	});
 }
 
-/*
 fn parse() {
 	repl(|input| {
-		let lexed = sneturfahi::lex(input);
-		match sneturfahi::parse(lexed) {
+		let lexed: Result<Vec<_>, _> = sneturfahi::lex(input).collect();
+		let lexed = match lexed {
+			Ok(lexed) => lexed,
+			Err(error) => {
+				println!("Lexing error: {error:?}");
+				return;
+			}
+		};
+		match sneturfahi::parse(&lexed) {
 			Ok(ast) => println!("AST: {ast:#?}"),
 			Err(error) => println!("Error: {error:?}"),
 		}
 	})
 }
-*/
 
 fn lex() {
 	repl(|input| {

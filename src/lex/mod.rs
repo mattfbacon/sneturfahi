@@ -6,10 +6,11 @@ use std::num::NonZeroU8;
 
 use crate::span::Span;
 
-mod classify;
+pub mod selmaho;
 pub mod token;
 
-pub use token::{Selmaho, Token};
+pub use selmaho::Selmaho;
+pub use token::Token;
 
 /// Reasons why lexing can fail.
 ///
@@ -446,11 +447,13 @@ mod test {
 					.map(Result::unwrap)
 					.map(|token| (token.selmaho, token.span.slice(raw).unwrap()))
 					.collect();
-				assert_eq!(result, &[$((super::token::Selmaho::$ttype, $text),)*] as &[(super::token::Selmaho, &str)]);
+				assert_eq!(result, &[$((super::selmaho::Selmaho::$ttype, $text),)*] as &[(super::selmaho::Selmaho, &str)]);
 			}
 		};
 		($name:ident, $raw:expr, $actual:expr) => {
-			use crate::{Span, lex::token::{Token, Selmaho::*}};
+			use crate::Span;
+			use crate::lex::token::Token;
+			use crate::lex::selmaho::Selmaho::*;
 			#[test]
 			fn $name() {
 				let raw = $raw;

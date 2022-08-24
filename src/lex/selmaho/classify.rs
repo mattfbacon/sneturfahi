@@ -1,4 +1,4 @@
-use super::token::Selmaho;
+use super::Selmaho;
 use crate::rules::ParseResultExt as _;
 
 fn transform_for_direct_cmavo_check<'a>(word: &str, buf: &'a mut [u8]) -> Option<&'a str> {
@@ -131,6 +131,7 @@ impl Selmaho {
 				"fa'o" => Self::Faho,
 				"fa'u'u'u'u'u'u'u'u" | "to'au" => experimental!(Self::Faho),
 				"fe'e" => Self::Fehe,
+				"fe'u" => Self::Fehu,
 				"fi'o" => Self::Fiho,
 				"foi" => Self::Foi,
 				"fu'a" => Self::Fuha,
@@ -165,6 +166,7 @@ impl Selmaho {
 				"jo'i" => Self::Johi,
 				"ke" => Self::Ke,
 				"va'au" | "fei'u" | "ke'oi" | "pi'ai" => experimental!(Self::Ke),
+				"ke'e" => Self::Kehe,
 				"kei" => Self::Kei,
 				"ki" => Self::Ki,
 				"da" | "de" | "di" | "da'u" | "de'e" | "dei" | "de'u" | "di'e" | "da'e" | "di'u"
@@ -187,6 +189,8 @@ impl Selmaho {
 				"tau'e" | "lai'e" | "la'e'au" | "lu'au" | "cei'u" | "du'au" | "moi'a" | "zo'ei" => {
 					experimental!(Self::Lahe)
 				}
+				"le" | "le'e" | "le'i" | "lei" | "lo" | "lo'e" | "lo'i" | "loi" => Self::Le,
+				"dau'u" | "ji'ai" | "kai'i" | "le'ei" | "lei'e" | "lei'i" | "lo'au" | "loi'a" | "loi'e" | "loi'i" | "lo'o'o" | "ly'ei" | "me'ei" | "moi'oi" | "mo'oi" | "nei'i" | "ri'oi" | "ti'oi" | "xai'i" | "zo'ai" | "zy'oi" => experimental!(Self::Le),
 				"le'u" => Self::Lehu,
 				"li" | "me'o" => Self::Li,
 				"li'ai" | "na'au" => experimental!(Self::Li),

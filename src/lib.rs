@@ -19,6 +19,7 @@
 	clippy::redundant_else, // sometimes it's clearer
 )]
 #![forbid(unsafe_code)]
+#![cfg_attr(feature = "type-alias-impl-trait", feature(type_alias_impl_trait))]
 
 mod rules;
 
@@ -28,8 +29,8 @@ pub use decompose::decompose;
 pub mod lex;
 pub use lex::lex;
 
-// pub mod parse;
-// pub use parse::parse;
+pub mod parse;
+pub use parse::parse;
 
 pub mod span;
 pub use span::Span;

@@ -52,6 +52,10 @@ fn simple_cmevla_check(input: &str) -> bool {
 		.map_or(false, is_consonant)
 }
 
+#[cfg(feature = "type-alias-impl-trait")]
+type Input<'input> = std::str::Split<'input, impl Fn(char) -> bool>;
+
+#[cfg(not(feature = "type-alias-impl-trait"))]
 type Input<'input> = std::str::Split<'input, fn(char) -> bool>;
 
 #[derive(Clone, Copy)]

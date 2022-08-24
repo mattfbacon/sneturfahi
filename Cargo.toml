@@ -6,8 +6,12 @@ version = "0.1.0"
 [dependencies]
 debug-rule = { path = "debug-rule" }
 log = "0.4"
+nom = "7"
 thiserror = "1"
 
 [dev-dependencies]
 atty = "0.2"
 simplelog = "0.12"
+
+[features]
+type-alias-impl-trait = []

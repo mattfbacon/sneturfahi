@@ -109,11 +109,15 @@ token_types! {
 	Beho,
 	Bei,
 	Bo,
+	Boi,
+	By,
 	Cmevla,
 	Cu,
+	Fa,
 	Faho,
 	Fehu,
 	Fiho,
+	Foi,
 	Fuhivla,
 	Gehu,
 	Gi,
@@ -126,17 +130,26 @@ token_types! {
 	Joi,
 	Ke,
 	Kehe,
+	Kei,
 	Koha,
 	Ku,
 	Kuho,
 	La,
+	Lau,
 	Le,
 	Lujvo,
+	Me,
+	Mehu,
 	Na,
 	Nahe,
 	Nai,
 	Noi,
+	Nu,
+	Pa,
 	Se,
+	Tei,
+	Veho,
+	Vei,
 	Vuho,
 	Zihe,
 	Zo,
@@ -171,6 +184,10 @@ pub struct WithFree<Inner> {
 	pub free: Box<[Free]>,
 }
 
+// todo
+#[derive(Debug)]
+pub struct Free;
+
 pub type Root = Text;
 
 #[derive(Debug)]
@@ -193,13 +210,13 @@ pub struct Sentence {
 #[derive(Debug)]
 pub enum Arg {
 	Tag(Tag),
-	Sumti(Sumti),
+	TagKu { tag: TagWord, ku: Ku },
+	Sumti { fa: Option<Fa>, sumti: Sumti },
 }
 
 #[derive(Debug)]
 pub struct Selbri {
-	pub components:
-		Box<[Separated<Separated<SelbriComponentOuter, (SelbriConnective, Bo)>, SelbriConnective>]>,
+	pub components: Box<[Separated<Separated<SelbriComponentOuter, (JoikJek, Bo)>, JoikJek>]>,
 }
 
 #[derive(Debug)]
@@ -214,15 +231,15 @@ pub enum SelbriComponentOuter {
 }
 
 #[derive(Debug)]
-pub struct SelbriConnective {
+pub struct JoikJek {
 	pub na: Option<Na>,
 	pub se: Option<Se>,
-	pub word: SelbriConnectiveWord,
+	pub word: JoikJekWord,
 	pub nai: Option<Nai>,
 }
 
 #[derive(Debug)]
-pub enum SelbriConnectiveWord {
+pub enum JoikJekWord {
 	Ja(Ja),
 	Joi(Joi),
 }
@@ -259,30 +276,47 @@ pub enum SelbriWord {
 	Gismu(Gismu),
 	Lujvo(Lujvo),
 	Fuhivla(Fuhivla),
+	Me {
+		me: Me,
+		inner: Box<Sumti>, // large type avoided here
+		mehu: Option<Mehu>,
+	},
+	Nu {
+		nu: Nu,
+		inner: Box<Sentence>, // large type avoided here
+		kei: Option<Kei>,
+	},
 }
 
 #[derive(Debug)]
 pub struct Tag {
-	pub word: TagWord,
+	pub words: Separated<TagWord, JoikJek>,
 	pub value: Option<Sumti>,
 }
 
 #[derive(Debug)]
 pub enum TagWord {
-	Bai(Bai),
+	Bai {
+		se: Option<Se>,
+		bai: Bai,
+		nai: Option<Nai>,
+	},
 	Converted(Selbri),
 }
 
 #[derive(Debug)]
 pub struct Sumti {
-	pub inner: Separated<SumtiComponent, SumtiConnective>,
+	pub inner: Separated<Separated<SumtiComponentOuter, (SumtiConnective, Bo)>, SumtiConnective>,
+	pub vuho_relative: Option<VuhoRelative>,
 }
 
 #[derive(Debug)]
 pub struct VuhoRelative {
-	pub vuho: WithFree<Vuho>,
-	pub relative_clauses: Separated<RelativeClause, WithFree<Zihe>>,
+	pub vuho: Vuho,
+	pub relative_clauses: RelativeClauses,
 }
+
+pub type RelativeClauses = Separated<RelativeClause, Zihe>;
 
 #[derive(Debug)]
 pub enum RelativeClause {
@@ -292,23 +326,82 @@ pub enum RelativeClause {
 
 #[derive(Debug)]
 pub struct GoiRelativeClause {
-	pub goi: WithFree<Goi>,
-	pub sumti: Sumti,
+	pub goi: Goi,
+	/// typical usage would match Arg::Sumti, but Arg::Tag is possible as well, such as in `la salis nesemau la betis cu se prami mi`
+	pub inner: Box<Arg>, // recursion avoided here
 	pub gehu: Option<Gehu>,
-	pub free: Box<[Free]>,
 }
 
 #[derive(Debug)]
 pub struct NoiRelativeClause {
-	pub noi: WithFree<Noi>,
-	pub sentence: Sentence,
+	pub noi: Noi,
+	pub sentence: Box<Sentence>, // large type avoided here
 	pub kuho: Option<Kuho>,
-	pub free: Box<[Free]>,
 }
 
-/// todo
 #[derive(Debug)]
-pub struct Free;
+pub enum SumtiComponentOuter {
+	Normal {
+		quantifier: Option<Quantifier>,
+		inner: SumtiComponent,
+		relative_clauses: Option<RelativeClauses>,
+	},
+	SelbriShorthand {
+		quantifier: Quantifier,
+		inner: Box<Selbri>, // large type avoided here
+		ku: Option<Ku>,
+		relative_clauses: Option<RelativeClauses>,
+	},
+}
+
+#[derive(Debug)]
+pub enum Quantifier {
+	Number {
+		number: Number,
+		boi: Option<Boi>,
+	},
+	Mekso {
+		vei: Vei,
+		mekso: Mekso,
+		veho: Option<Veho>,
+	},
+}
+
+// todo
+#[derive(Debug)]
+pub struct Mekso;
+
+#[derive(Debug)]
+pub struct Number {
+	pub first: Pa,
+	pub rest: Box<[NumberRest]>,
+}
+
+#[derive(Debug)]
+pub enum NumberRest {
+	Pa(Pa),
+	Lerfu(LerfuWord),
+}
+
+#[derive(Debug)]
+pub struct LerfuString {
+	pub first: LerfuWord,
+	pub rest: Box<[NumberRest]>,
+}
+
+#[derive(Debug)]
+pub enum LerfuWord {
+	By(By),
+	Lau {
+		lau: Lau,
+		by: By,
+	},
+	Tei {
+		tei: Tei,
+		inner: Box<LerfuString>, // recursion avoided here
+		foi: Foi,
+	},
+}
 
 #[derive(Debug)]
 pub enum SumtiComponent {

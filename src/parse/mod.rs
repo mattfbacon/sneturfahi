@@ -141,10 +141,10 @@ fn selbri(input: &[Token]) -> ParseResult<'_, cst::Selbri> {
 		many1(separated(
 			separated(
 				selbri_component_outer,
-				|input| tuple((selbri_connective, selmaho!(Bo)))(input),
+				|input| tuple((joik_jek, selmaho!(Bo)))(input),
 				false,
 			),
-			selbri_connective,
+			joik_jek,
 			false,
 		)),
 		|components| cst::Selbri { components },
@@ -174,22 +174,22 @@ fn selbri_component_outer(input: &[Token]) -> ParseResult<'_, cst::SelbriCompone
 	))(input)
 }
 
-fn selbri_connective(input: &[Token]) -> ParseResult<'_, cst::SelbriConnective> {
+fn joik_jek(input: &[Token]) -> ParseResult<'_, cst::JoikJek> {
 	map(
 		tuple((
 			opt(selmaho!(Na)),
 			opt(selmaho!(Se)),
-			selbri_connective_word,
+			joik_jek_word,
 			opt(selmaho!(Nai)),
 		)),
-		|(na, se, word, nai)| cst::SelbriConnective { na, se, word, nai },
+		|(na, se, word, nai)| cst::JoikJek { na, se, word, nai },
 	)(input)
 }
 
-fn selbri_connective_word(input: &[Token]) -> ParseResult<'_, cst::SelbriConnectiveWord> {
+fn joik_jek_word(input: &[Token]) -> ParseResult<'_, cst::JoikJekWord> {
 	alt((
-		map(selmaho!(Ja), cst::SelbriConnectiveWord::Ja),
-		map(selmaho!(Joi), cst::SelbriConnectiveWord::Joi),
+		map(selmaho!(Ja), cst::JoikJekWord::Ja),
+		map(selmaho!(Joi), cst::JoikJekWord::Joi),
 	))(input)
 }
 
@@ -229,6 +229,22 @@ fn selbri_word(input: &[Token]) -> ParseResult<'_, cst::SelbriWord> {
 		map(selmaho!(Gismu), cst::SelbriWord::Gismu),
 		map(selmaho!(Lujvo), cst::SelbriWord::Lujvo),
 		map(selmaho!(Fuhivla), cst::SelbriWord::Fuhivla),
+		map(
+			tuple((selmaho!(Nu), cut(sentence), opt(selmaho!(Kei)))),
+			|(nu, inner, kei)| cst::SelbriWord::Nu {
+				nu,
+				inner: Box::new(inner),
+				kei,
+			},
+		),
+		map(
+			tuple((selmaho!(Me), cut(sumti), opt(selmaho!(Mehu)))),
+			|(me, inner, mehu)| cst::SelbriWord::Me {
+				me,
+				inner: Box::new(inner),
+				mehu,
+			},
+		),
 	))(input)
 }
 
@@ -244,19 +260,30 @@ fn bound_arguments(input: &[Token]) -> ParseResult<'_, cst::BoundArguments> {
 }
 
 fn arg(input: &[Token]) -> ParseResult<'_, cst::Arg> {
-	alt((map(tag, cst::Arg::Tag), map(sumti, cst::Arg::Sumti)))(input)
+	alt((
+		map(tuple((tag_word, selmaho!(Ku))), |(tag, ku)| {
+			cst::Arg::TagKu { tag, ku }
+		}),
+		map(tag, cst::Arg::Tag),
+		map(tuple((opt(selmaho!(Fa)), sumti)), |(fa, sumti)| {
+			cst::Arg::Sumti { fa, sumti }
+		}),
+	))(input)
 }
 
 fn tag(input: &[Token]) -> ParseResult<'_, cst::Tag> {
-	map(tuple((tag_word, tag_value)), |(word, value)| cst::Tag {
-		word,
-		value,
-	})(input)
+	map(
+		tuple((separated(tag_word, joik_jek, false), tag_value)),
+		|(words, value)| cst::Tag { words, value },
+	)(input)
 }
 
 fn tag_word(input: &[Token]) -> ParseResult<'_, cst::TagWord> {
 	alt((
-		map(selmaho!(Bai), cst::TagWord::Bai),
+		map(
+			tuple((opt(selmaho!(Se)), selmaho!(Bai), opt(selmaho!(Nai)))),
+			|(se, bai, nai)| cst::TagWord::Bai { se, bai, nai },
+		),
 		map(converted_tag_word, cst::TagWord::Converted),
 	))(input)
 }
@@ -275,8 +302,140 @@ fn tag_value(input: &[Token]) -> ParseResult<'_, Option<cst::Sumti>> {
 
 fn sumti(input: &[Token]) -> ParseResult<'_, cst::Sumti> {
 	map(
-		separated(sumti_component, sumti_connective, false),
-		|inner| cst::Sumti { inner },
+		tuple((
+			separated(
+				separated(
+					sumti_component_outer,
+					|input| tuple((sumti_connective, selmaho!(Bo)))(input),
+					false,
+				),
+				sumti_connective,
+				false,
+			),
+			opt(vuho_relative),
+		)),
+		|(inner, vuho_relative)| cst::Sumti {
+			inner,
+			vuho_relative,
+		},
+	)(input)
+}
+
+fn sumti_component_outer(input: &[Token]) -> ParseResult<'_, cst::SumtiComponentOuter> {
+	alt((
+		map(
+			tuple((opt(quantifier), sumti_component, opt(relative_clauses))),
+			|(quantifier, inner, relative_clauses)| cst::SumtiComponentOuter::Normal {
+				quantifier,
+				inner,
+				relative_clauses,
+			},
+		),
+		map(
+			tuple((quantifier, selbri, opt(selmaho!(Ku)), opt(relative_clauses))),
+			|(quantifier, inner, ku, relative_clauses)| cst::SumtiComponentOuter::SelbriShorthand {
+				quantifier,
+				inner: Box::new(inner),
+				ku,
+				relative_clauses,
+			},
+		),
+	))(input)
+}
+
+fn quantifier(input: &[Token]) -> ParseResult<'_, cst::Quantifier> {
+	alt((
+		map(
+			tuple((selmaho!(Vei), cut(mekso), opt(selmaho!(Veho)))),
+			|(vei, mekso, veho)| cst::Quantifier::Mekso { vei, mekso, veho },
+		),
+		map(tuple((number, opt(selmaho!(Boi)))), |(number, boi)| {
+			cst::Quantifier::Number { number, boi }
+		}),
+	))(input)
+}
+
+fn mekso(input: &[Token]) -> ParseResult<'_, cst::Mekso> {
+	todo!()
+}
+
+fn number(input: &[Token]) -> ParseResult<'_, cst::Number> {
+	map(
+		tuple((selmaho!(Pa), many0(number_rest))),
+		|(first, rest)| cst::Number { first, rest },
+	)(input)
+}
+
+fn number_rest(input: &[Token]) -> ParseResult<'_, cst::NumberRest> {
+	alt((
+		map(selmaho!(Pa), cst::NumberRest::Pa),
+		map(lerfu_word, cst::NumberRest::Lerfu),
+	))(input)
+}
+
+fn lerfu_string(input: &[Token]) -> ParseResult<'_, cst::LerfuString> {
+	map(tuple((lerfu_word, many0(number_rest))), |(first, rest)| {
+		cst::LerfuString { first, rest }
+	})(input)
+}
+
+fn lerfu_word(input: &[Token]) -> ParseResult<'_, cst::LerfuWord> {
+	alt((
+		map(selmaho!(By), cst::LerfuWord::By),
+		map(tuple((selmaho!(Lau), cut(selmaho!(By)))), |(lau, by)| {
+			cst::LerfuWord::Lau { lau, by }
+		}),
+		map(
+			tuple((selmaho!(Tei), cut(lerfu_string), cut(selmaho!(Foi)))),
+			|(tei, inner, foi)| cst::LerfuWord::Tei {
+				tei,
+				inner: Box::new(inner),
+				foi,
+			},
+		),
+	))(input)
+}
+
+fn vuho_relative(input: &[Token]) -> ParseResult<'_, cst::VuhoRelative> {
+	map(
+		tuple((selmaho!(Vuho), cut(relative_clauses))),
+		|(vuho, relative_clauses)| cst::VuhoRelative {
+			vuho,
+			relative_clauses,
+		},
+	)(input)
+}
+
+fn relative_clauses(input: &[Token]) -> ParseResult<'_, cst::RelativeClauses> {
+	separated(relative_clause, selmaho!(Zihe), true).parse(input)
+}
+
+fn relative_clause(input: &[Token]) -> ParseResult<'_, cst::RelativeClause> {
+	alt((
+		map(goi_relative_clause, cst::RelativeClause::Goi),
+		map(noi_relative_clause, cst::RelativeClause::Noi),
+	))(input)
+}
+
+fn goi_relative_clause(input: &[Token]) -> ParseResult<'_, cst::GoiRelativeClause> {
+	map(
+		tuple((selmaho!(Goi), cut(arg), opt(selmaho!(Gehu)))),
+		|(goi, inner, gehu)| cst::GoiRelativeClause {
+			goi,
+			inner: Box::new(inner),
+			gehu,
+		},
+	)(input)
+}
+
+fn noi_relative_clause(input: &[Token]) -> ParseResult<'_, cst::NoiRelativeClause> {
+	map(
+		tuple((selmaho!(Noi), cut(sentence), opt(selmaho!(Kuho)))),
+		|(noi, sentence, kuho)| cst::NoiRelativeClause {
+			noi,
+			sentence: Box::new(sentence),
+			kuho,
+		},
 	)(input)
 }
 

@@ -122,7 +122,7 @@ impl Selmaho {
 				"doi" => Self::Doi,
 				"ve'ai" | "da'ei" | "da'oi" => experimental!(Self::Doi),
 				"do'u" => Self::Dohu,
-				"fa" | "fai" | "fe" | " fi" | "fi'a" | "fo" | "fu" => Self::Fa,
+				"fa" | "fai" | "fe" | "fi" | "fi'a" | "fo" | "fu" => Self::Fa,
 				"fai'i" | "fa'au'u" | "zoi'u" => experimental!(Self::Fa),
 				"be'a" | "vu'a" | "du'a" | "ne'u" | "ru'u" | "ri'u" | "ti'a" | "ga'u" | "ca'u" | "ni'a"
 				| "zu'a" | "re'o" | "te'e" | "bu'u" | "ne'a" | "ne'i" | "pa'o" | "to'o" | "fa'a"

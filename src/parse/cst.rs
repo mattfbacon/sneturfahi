@@ -1,3 +1,5 @@
+#![allow(missing_docs, missing_copy_implementations)]
+
 use crate::lex::{Selmaho, Token};
 use crate::span::Span;
 

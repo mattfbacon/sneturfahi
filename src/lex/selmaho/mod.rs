@@ -281,7 +281,7 @@ impl Selmaho {
 	/// # Examples
 	///
 	/// ```rust
-	/// # use sneturfahi::lex::token::Selmaho;
+	/// # use sneturfahi::lex::selmaho::Selmaho;
 	/// assert!(!Selmaho::A.is_fundamentally_experimental());
 	/// assert!(Selmaho::Xahoihahoiha.is_fundamentally_experimental());
 	/// assert!(!Selmaho::Gismu.is_fundamentally_experimental());

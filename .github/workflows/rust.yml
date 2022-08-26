@@ -35,7 +35,7 @@
               },
               {
                 "name": "Clippy",
-                "run": "cargo clippy --all-targets --all-features -- -Dwarnings",
+                "run": "cargo clippy --all-targets -- -Dwarnings",
               },
             ],
         },
@@ -47,10 +47,7 @@
             [
               { "uses": "actions/checkout@v3" },
               { "uses": "Swatinem/rust-cache@v2" },
-              {
-                "name": "Run tests",
-                "run": "cargo test --all-targets --all-features",
-              },
+              { "name": "Run tests", "run": "cargo test --all-targets" },
             ],
         },
     },

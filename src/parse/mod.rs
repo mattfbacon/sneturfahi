@@ -1,5 +1,5 @@
 use nom::branch::alt;
-use nom::combinator::{all_consuming, cut, map, opt};
+use nom::combinator::{all_consuming, cut, map, not, opt};
 use nom::sequence::tuple;
 use nom::Parser;
 
@@ -22,6 +22,12 @@ fn many1<'a, T>(
 	parser: impl Parser<&'a [Token], T, error::WithLocation<'a>>,
 ) -> impl Parser<&'a [Token], Box<[T]>, error::WithLocation<'a>> {
 	map(nom::multi::many1(parser), Vec::into_boxed_slice)
+}
+
+fn box_<'a, T>(
+	parser: impl Parser<&'a [Token], T, error::WithLocation<'a>>,
+) -> impl FnMut(&'a [Token]) -> ParseResult<'a, Box<T>> {
+	map(parser, Box::new)
 }
 
 fn selmaho_raw<T: cst::SelmahoTypeRaw>(input: &[Token]) -> ParseResult<'_, T> {
@@ -49,6 +55,11 @@ macro_rules! selmaho {
 	};
 }
 
+/// Whether to set `should_cut` is a bit of a tricky question.
+/// It is complicated by the elision of elidable terminators.
+/// For example, `lo broda joi lo brode` is perfectly acceptable and implies a `KU` before `joi`.
+/// However, if `should_cut` was set to true, the failure to parse a selbri after the `joi` (since selbri can also be connected with `JOI`) would have caused a parse *failure* (not an error).
+/// Thus, in that situation `should_cut` must be false.
 fn separated<'a, Item, Separator>(
 	item: impl Parser<&'a [Token], Item, error::WithLocation<'a>> + Clone,
 	separator: impl Parser<&'a [Token], Separator, error::WithLocation<'a>> + Clone,
@@ -105,6 +116,9 @@ fn sentence(mut input: &[Token]) -> ParseResult<'_, cst::Sentence> {
 		};
 	}
 
+	let (new_input, prenexes) = many0(prenex).parse(input)?;
+	input = new_input;
+
 	args!();
 
 	let (new_input, cu) = opt(selmaho!(Cu))(input)?;
@@ -129,6 +143,7 @@ fn sentence(mut input: &[Token]) -> ParseResult<'_, cst::Sentence> {
 	Ok((
 		input,
 		cst::Sentence {
+			prenexes,
 			selbri,
 			args: args.into_boxed_slice(),
 			num_args_before_selbri,
@@ -136,41 +151,87 @@ fn sentence(mut input: &[Token]) -> ParseResult<'_, cst::Sentence> {
 	))
 }
 
-fn selbri(input: &[Token]) -> ParseResult<'_, cst::Selbri> {
-	map(
-		many1(separated(
-			separated(
-				selbri_component_outer,
-				|input| tuple((joik_jek, selmaho!(Bo)))(input),
-				false,
-			),
-			joik_jek,
-			false,
-		)),
-		|components| cst::Selbri { components },
-	)(input)
+fn prenex(input: &[Token]) -> ParseResult<'_, cst::Prenex> {
+	map(tuple((many0(arg), selmaho!(Zohu))), |(terms, zohu)| {
+		cst::Prenex { terms, zohu }
+	})(input)
 }
 
-fn selbri_component_outer(input: &[Token]) -> ParseResult<'_, cst::SelbriComponentOuter> {
+fn selbri(input: &[Token]) -> ParseResult<'_, cst::Selbri> {
+	map(tuple((many0(selmaho!(Na)), selbri1)), |(na, components)| {
+		cst::Selbri { na, components }
+	})(input)
+}
+
+fn selbri1(input: &[Token]) -> ParseResult<'_, cst::Selbri1> {
+	separated(selbri2, selmaho!(Co), true).parse(input)
+}
+
+fn selbri2(input: &[Token]) -> ParseResult<'_, cst::Selbri2> {
+	many1(selbri3).parse(input)
+}
+
+fn selbri3(input: &[Token]) -> ParseResult<'_, cst::Selbri3> {
+	separated(selbri4, joik_jek, false).parse(input)
+}
+
+fn selbri4(input: &[Token]) -> ParseResult<'_, cst::Selbri4> {
+	separated(
+		selbri5,
+		|input| tuple((joik_jek, selmaho!(Bo)))(input),
+		false,
+	)
+	.parse(input)
+}
+
+fn selbri5(input: &[Token]) -> ParseResult<'_, cst::Selbri5> {
+	separated(selbri6, selmaho!(Bo), false).parse(input)
+}
+
+fn selbri6(input: &[Token]) -> ParseResult<'_, cst::Selbri6> {
 	alt((
 		map(
 			tuple((
+				opt(selmaho!(Nahe)),
 				selmaho!(Guha),
 				cut(selbri),
 				selmaho!(Gi),
-				selbri_component_outer,
+				selbri6,
 			)),
-			|(guha, first, gi, second)| cst::SelbriComponentOuter::Connected {
+			|(nahe, guha, first, gi, second)| cst::Selbri6::Connected {
+				nahe,
 				guha,
 				first: Box::new(first),
 				gi,
 				second: Box::new(second),
 			},
 		),
-		map(
-			separated(selbri_component, selmaho!(Bo), true),
-			cst::SelbriComponentOuter::NotConnected,
-		),
+		map(tanru_unit, cst::Selbri6::NotConnected),
+	))(input)
+}
+
+fn tanru_unit(input: &[Token]) -> ParseResult<'_, cst::TanruUnit> {
+	separated(tanru_unit_1, selmaho!(Cei), true).parse(input)
+}
+
+fn tanru_unit_1(input: &[Token]) -> ParseResult<'_, cst::TanruUnit1> {
+	map(
+		tuple((many0(before_tanru_unit), tanru_unit_2, opt(bound_arguments))),
+		|(before, inner, bound_arguments)| cst::TanruUnit1 {
+			before,
+			inner,
+			bound_arguments,
+		},
+	)(input)
+}
+
+fn before_tanru_unit(input: &[Token]) -> ParseResult<'_, cst::BeforeTanruUnit> {
+	alt((
+		map(tuple((selmaho!(Jai), opt(tag_word))), |(jai, tag)| {
+			cst::BeforeTanruUnit::Jai { jai, tag }
+		}),
+		map(selmaho!(Nahe), cst::BeforeTanruUnit::Nahe),
+		map(selmaho!(Se), cst::BeforeTanruUnit::Se),
 	))(input)
 }
 
@@ -193,6 +254,7 @@ fn joik_jek_word(input: &[Token]) -> ParseResult<'_, cst::JoikJekWord> {
 	))(input)
 }
 
+/*
 fn selbri_component(input: &[Token]) -> ParseResult<'_, cst::SelbriComponent> {
 	map(
 		tuple((
@@ -208,42 +270,59 @@ fn selbri_component(input: &[Token]) -> ParseResult<'_, cst::SelbriComponent> {
 	)(input)
 }
 
-fn before_selbri_component(input: &[Token]) -> ParseResult<'_, cst::BeforeSelbriComponent> {
+fn before_selbri_component(input: &[Token]) -> ParseResult<'_, cst::BeforeTanruUnit> {
 	alt((
-		map(selmaho!(Jai), cst::BeforeSelbriComponent::Jai),
-		map(selmaho!(Nahe), cst::BeforeSelbriComponent::Nahe),
-		map(selmaho!(Se), cst::BeforeSelbriComponent::Se),
+		map(selmaho!(Jai), cst::BeforeTanruUnit::Jai),
+		map(selmaho!(Nahe), cst::BeforeTanruUnit::Nahe),
+		map(selmaho!(Se), cst::BeforeTanruUnit::Se),
 	))(input)
 }
+*/
 
-fn selbri_word(input: &[Token]) -> ParseResult<'_, cst::SelbriWord> {
+fn tanru_unit_2(input: &[Token]) -> ParseResult<'_, cst::TanruUnit2> {
 	alt((
 		map(
-			tuple((selmaho!(Ke), cut(selbri), opt(selmaho!(Kehe)))),
-			|(ke, group, kehe)| cst::SelbriWord::GroupedTanru {
-				ke,
-				group: Box::new(group),
-				kehe,
-			},
+			tuple((selmaho!(Ke), cut(selbri2), opt(selmaho!(Kehe)))),
+			|(ke, group, kehe)| cst::TanruUnit2::GroupedTanru { ke, group, kehe },
 		),
-		map(selmaho!(Gismu), cst::SelbriWord::Gismu),
-		map(selmaho!(Lujvo), cst::SelbriWord::Lujvo),
-		map(selmaho!(Fuhivla), cst::SelbriWord::Fuhivla),
+		map(selmaho!(Gismu), cst::TanruUnit2::Gismu),
+		map(selmaho!(Lujvo), cst::TanruUnit2::Lujvo),
+		map(selmaho!(Fuhivla), cst::TanruUnit2::Fuhivla),
 		map(
-			tuple((selmaho!(Nu), cut(sentence), opt(selmaho!(Kei)))),
-			|(nu, inner, kei)| cst::SelbriWord::Nu {
-				nu,
+			tuple((selmaho!(Goha), opt(selmaho!(Raho)))),
+			|(goha, raho)| cst::TanruUnit2::Goha { goha, raho },
+		),
+		map(
+			tuple((selmaho!(Nuha), cut(mekso_operator))),
+			|(nuha, operator)| cst::TanruUnit2::Nuha { nuha, operator },
+		),
+		map(
+			tuple((
+				separated(
+					|input| tuple((selmaho!(Nu), opt(selmaho!(Nai)))).parse(input),
+					joik_jek,
+					true,
+				),
+				cut(sentence),
+				opt(selmaho!(Kei)),
+			)),
+			|(nus, inner, kei)| cst::TanruUnit2::Nu {
+				nus,
 				inner: Box::new(inner),
 				kei,
 			},
 		),
 		map(
 			tuple((selmaho!(Me), cut(sumti), opt(selmaho!(Mehu)))),
-			|(me, inner, mehu)| cst::SelbriWord::Me {
+			|(me, inner, mehu)| cst::TanruUnit2::Me {
 				me,
 				inner: Box::new(inner),
 				mehu,
 			},
+		),
+		map(
+			tuple((many1(number_rest), selmaho!(Moi))),
+			|(number, moi)| cst::TanruUnit2::Moi(number, moi),
 		),
 	))(input)
 }
@@ -349,14 +428,19 @@ fn quantifier(input: &[Token]) -> ParseResult<'_, cst::Quantifier> {
 			tuple((selmaho!(Vei), cut(mekso), opt(selmaho!(Veho)))),
 			|(vei, mekso, veho)| cst::Quantifier::Mekso { vei, mekso, veho },
 		),
-		map(tuple((number, opt(selmaho!(Boi)))), |(number, boi)| {
-			cst::Quantifier::Number { number, boi }
-		}),
+		map(
+			tuple((number, not(selmaho!(Moi)), opt(selmaho!(Boi)))),
+			|(number, _, boi)| cst::Quantifier::Number { number, boi },
+		),
 	))(input)
 }
 
 fn mekso(input: &[Token]) -> ParseResult<'_, cst::Mekso> {
-	todo!()
+	todo!("mekso")
+}
+
+fn mekso_operator(input: &[Token]) -> ParseResult<'_, cst::MeksoOperator> {
+	todo!("mekso")
 }
 
 fn number(input: &[Token]) -> ParseResult<'_, cst::Number> {
@@ -442,33 +526,110 @@ fn noi_relative_clause(input: &[Token]) -> ParseResult<'_, cst::NoiRelativeClaus
 fn sumti_component(input: &[Token]) -> ParseResult<'_, cst::SumtiComponent> {
 	alt((
 		map(selmaho!(Koha), cst::SumtiComponent::Koha),
-		map(le_sumti, cst::SumtiComponent::Le),
+		// it is important that this is checked before `la_sumti` because `la_sumti` `cut`s on `cmevla`
+		map(gadri_sumti, cst::SumtiComponent::Gadri),
 		map(la_sumti, cst::SumtiComponent::La),
+		map(lohu_sumti, cst::SumtiComponent::Lohu),
+		map(lu_sumti, cst::SumtiComponent::Lu),
+		map(modified_sumti, cst::SumtiComponent::Modified),
+		map(
+			tuple((lerfu_string, opt(selmaho!(Boi)))),
+			|(lerfu_string, boi)| cst::SumtiComponent::LerfuString(lerfu_string, boi),
+		),
 		map(zo_sumti, cst::SumtiComponent::Zo),
 		map(zoi_sumti, cst::SumtiComponent::Zoi),
+		map(
+			tuple((selmaho!(Li), mekso, opt(selmaho!(Loho)))),
+			|(li, mekso, loho)| cst::SumtiComponent::Li(li, mekso, loho),
+		),
 	))(input)
 }
 
-fn le_sumti(input: &[Token]) -> ParseResult<'_, cst::LeSumti> {
+fn lohu_sumti(input: &[Token]) -> ParseResult<'_, cst::LohuSumti> {
 	map(
-		tuple((selmaho!(Le), cut(selbri), opt(selmaho!(Ku)))),
-		|(le, selbri, _ku)| cst::LeSumti { le, selbri },
+		tuple((selmaho!(Lohu), many0(token), selmaho!(Lehu))),
+		|(lohu, inner, lehu)| cst::LohuSumti { lohu, inner, lehu },
 	)(input)
 }
 
-fn la_sumti(input: &[Token]) -> ParseResult<'_, cst::LaSumti> {
-	map(tuple((selmaho!(La), cut(la_sumti_inner))), |(la, inner)| {
-		cst::LaSumti { la, inner }
-	})(input)
+fn lu_sumti(input: &[Token]) -> ParseResult<'_, cst::LuSumti> {
+	map(
+		tuple((selmaho!(Lu), box_(text), opt(selmaho!(Lihu)))),
+		|(lu, text, lihu)| cst::LuSumti { lu, text, lihu },
+	)(input)
 }
 
-fn la_sumti_inner(input: &[Token]) -> ParseResult<'_, cst::LaSumtiInner> {
+fn modified_sumti(input: &[Token]) -> ParseResult<'_, cst::ModifiedSumti> {
+	map(
+		tuple((
+			sumti_modifier,
+			opt(relative_clauses),
+			box_(sumti),
+			opt(selmaho!(Luhu)),
+		)),
+		|(modifier, relative_clauses, sumti, luhu)| cst::ModifiedSumti {
+			modifier,
+			relative_clauses,
+			sumti,
+			luhu,
+		},
+	)(input)
+}
+
+fn sumti_modifier(input: &[Token]) -> ParseResult<'_, cst::SumtiModifier> {
 	alt((
-		map(many1(selmaho!(Cmevla)), cst::LaSumtiInner::Cmevla),
-		map(tuple((selbri, opt(selmaho!(Ku)))), |(selbri, _ku)| {
-			cst::LaSumtiInner::Selbri(selbri)
+		map(selmaho!(Lahe), cst::SumtiModifier::Lahe),
+		map(tuple((selmaho!(Nahe), selmaho!(Bo))), |(nahe, bo)| {
+			cst::SumtiModifier::NaheBo(nahe, bo)
 		}),
 	))(input)
+}
+
+fn gadri_sumti(input: &[Token]) -> ParseResult<'_, cst::GadriSumti> {
+	map(
+		tuple((
+			gadri,
+			opt(box_(sumti_component)),
+			opt(relative_clauses),
+			gadri_sumti_inner,
+			opt(selmaho!(Ku)),
+		)),
+		|(gadri, pe_shorthand, relative_clauses, inner, ku)| cst::GadriSumti {
+			gadri,
+			pe_shorthand,
+			relative_clauses,
+			inner,
+			ku,
+		},
+	)(input)
+}
+
+fn gadri(input: &[Token]) -> ParseResult<'_, cst::Gadri> {
+	alt((
+		map(selmaho!(Le), cst::Gadri::Le),
+		map(selmaho!(La), cst::Gadri::La),
+	))(input)
+}
+
+fn gadri_sumti_inner(input: &[Token]) -> ParseResult<'_, cst::GadriSumtiInner> {
+	alt((
+		map(tuple((quantifier, box_(sumti))), |(quantifier, sumti)| {
+			cst::GadriSumtiInner::Sumti(quantifier, sumti)
+		}),
+		map(
+			tuple((opt(quantifier), box_(selbri), opt(relative_clauses))),
+			|(quantifier, selbri, relative_clauses)| {
+				cst::GadriSumtiInner::Selbri(quantifier, selbri, relative_clauses)
+			},
+		),
+	))(input)
+}
+
+fn la_sumti(input: &[Token]) -> ParseResult<'_, cst::LaSumti> {
+	map(
+		tuple((selmaho!(La), cut(many1(selmaho!(Cmevla))))),
+		|(la, inner)| cst::LaSumti { la, inner },
+	)(input)
 }
 
 fn zo_sumti(input: &[Token]) -> ParseResult<'_, cst::ZoSumti> {

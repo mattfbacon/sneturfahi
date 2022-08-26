@@ -111,7 +111,9 @@ token_types! {
 	Bo,
 	Boi,
 	By,
+	Cei,
 	Cmevla,
+	Co,
 	Cu,
 	Fa,
 	Faho,
@@ -122,6 +124,7 @@ token_types! {
 	Gehu,
 	Gi,
 	Gismu,
+	Goha,
 	Goi,
 	Guha,
 	I,
@@ -135,17 +138,28 @@ token_types! {
 	Ku,
 	Kuho,
 	La,
+	Lahe,
 	Lau,
 	Le,
+	Lehu,
+	Li,
+	Lihu,
+	Loho,
+	Lohu,
+	Lu,
+	Luhu,
 	Lujvo,
 	Me,
 	Mehu,
+	Moi,
 	Na,
 	Nahe,
 	Nai,
 	Noi,
 	Nu,
+	Nuha,
 	Pa,
+	Raho,
 	Se,
 	Tei,
 	Veho,
@@ -153,6 +167,7 @@ token_types! {
 	Vuho,
 	Zihe,
 	Zo,
+	Zohu,
 	Zoi,
 }
 
@@ -199,12 +214,19 @@ pub struct Text {
 
 #[derive(Debug)]
 pub struct Sentence {
+	pub prenexes: Box<[Prenex]>,
 	pub selbri: Option<(Option<Cu>, Selbri)>,
 	pub args: Box<[Arg]>,
 	/// How many of `args` were before `selbri`.
 	///
 	/// Will be equal to `args.len()` if there is no selbri.
 	pub num_args_before_selbri: usize,
+}
+
+#[derive(Debug)]
+pub struct Prenex {
+	pub terms: Box<[Arg]>,
+	pub zohu: Zohu,
 }
 
 #[derive(Debug)]
@@ -216,13 +238,25 @@ pub enum Arg {
 
 #[derive(Debug)]
 pub struct Selbri {
-	pub components: Box<[Separated<Separated<SelbriComponentOuter, (JoikJek, Bo)>, JoikJek>]>,
+	pub na: Box<[Na]>,
+	pub components: Selbri1,
 }
 
+pub type Selbri1 = Separated<Selbri2, Co>;
+
+pub type Selbri2 = Box<[Selbri3]>;
+
+pub type Selbri3 = Separated<Selbri4, JoikJek>;
+
+pub type Selbri4 = Separated<Selbri5, (JoikJek, Bo)>;
+
+pub type Selbri5 = Separated<Selbri6, Bo>;
+
 #[derive(Debug)]
-pub enum SelbriComponentOuter {
-	NotConnected(Separated<SelbriComponent, Bo>),
+pub enum Selbri6 {
+	NotConnected(TanruUnit),
 	Connected {
+		nahe: Option<Nahe>,
 		guha: Guha,
 		first: Box<Selbri>, // recursion avoided here
 		gi: Gi,
@@ -244,17 +278,18 @@ pub enum JoikJekWord {
 	Joi(Joi),
 }
 
+pub type TanruUnit = Separated<TanruUnit1, Cei>;
+
 #[derive(Debug)]
-pub struct SelbriComponent {
-	pub before: Box<[BeforeSelbriComponent]>,
-	pub word: SelbriWord,
-	/// empty = no bound arguments
+pub struct TanruUnit1 {
+	pub before: Box<[BeforeTanruUnit]>,
+	pub inner: TanruUnit2,
 	pub bound_arguments: Option<BoundArguments>,
 }
 
 #[derive(Debug)]
-pub enum BeforeSelbriComponent {
-	Jai(Jai),
+pub enum BeforeTanruUnit {
+	Jai { jai: Jai, tag: Option<TagWord> },
 	Nahe(Nahe),
 	Se(Se),
 }
@@ -267,32 +302,43 @@ pub struct BoundArguments {
 }
 
 #[derive(Debug)]
-pub enum SelbriWord {
+pub enum TanruUnit2 {
 	GroupedTanru {
 		ke: Ke,
-		group: Box<Selbri>, // large type avoided here
+		group: Selbri2, /* not `Selbri` because ke-ke'e groupings can't encompass co (CLL 5.8). `Selbri2` is the rule immediately inside co groupings */
 		kehe: Option<Kehe>,
 	},
 	Gismu(Gismu),
 	Lujvo(Lujvo),
 	Fuhivla(Fuhivla),
+	Goha {
+		goha: Goha,
+		raho: Option<Raho>,
+	},
+	Moi(MiscNumbers, Moi),
 	Me {
 		me: Me,
 		inner: Box<Sumti>, // large type avoided here
 		mehu: Option<Mehu>,
 	},
 	Nu {
-		nu: Nu,
+		nus: Separated<(Nu, Option<Nai>), JoikJek>,
 		inner: Box<Sentence>, // large type avoided here
 		kei: Option<Kei>,
+	},
+	Nuha {
+		nuha: Nuha,
+		operator: MeksoOperator,
 	},
 }
 
 #[derive(Debug)]
 pub struct Tag {
-	pub words: Separated<TagWord, JoikJek>,
+	pub words: TagWords,
 	pub value: Option<Sumti>,
 }
+
+pub type TagWords = Separated<TagWord, JoikJek>;
 
 #[derive(Debug)]
 pub enum TagWord {
@@ -371,6 +417,10 @@ pub enum Quantifier {
 #[derive(Debug)]
 pub struct Mekso;
 
+// todo
+#[derive(Debug)]
+pub struct MeksoOperator;
+
 #[derive(Debug)]
 pub struct Number {
 	pub first: Pa,
@@ -389,6 +439,8 @@ pub struct LerfuString {
 	pub rest: Box<[NumberRest]>,
 }
 
+pub type MiscNumbers = Box<[NumberRest]>;
+
 #[derive(Debug)]
 pub enum LerfuWord {
 	By(By),
@@ -406,10 +458,43 @@ pub enum LerfuWord {
 #[derive(Debug)]
 pub enum SumtiComponent {
 	Koha(Koha),
-	Le(LeSumti),
+	Gadri(GadriSumti),
 	La(LaSumti),
+	Lohu(LohuSumti),
+	Lu(LuSumti),
+	Modified(ModifiedSumti),
+	LerfuString(LerfuString, Option<Boi>),
 	Zo(ZoSumti),
 	Zoi(ZoiSumti),
+	Li(Li, Mekso, Option<Loho>),
+}
+
+#[derive(Debug)]
+pub struct LohuSumti {
+	pub lohu: Lohu,
+	pub inner: Box<[Token]>,
+	pub lehu: Lehu,
+}
+
+#[derive(Debug)]
+pub struct LuSumti {
+	pub lu: Lu,
+	pub text: Box<Text>,
+	pub lihu: Option<Lihu>,
+}
+
+#[derive(Debug)]
+pub struct ModifiedSumti {
+	pub modifier: SumtiModifier,
+	pub relative_clauses: Option<RelativeClauses>,
+	pub sumti: Box<Sumti>,
+	pub luhu: Option<Luhu>,
+}
+
+#[derive(Debug)]
+pub enum SumtiModifier {
+	Lahe(Lahe),
+	NaheBo(Nahe, Bo),
 }
 
 #[derive(Debug)]
@@ -419,21 +504,30 @@ pub enum SumtiConnective {
 }
 
 #[derive(Debug)]
-pub struct LeSumti {
-	pub le: Le,
-	pub selbri: Selbri,
+pub struct GadriSumti {
+	pub gadri: Gadri,
+	pub pe_shorthand: Option<Box<SumtiComponent>>, // recursion avoided here
+	pub relative_clauses: Option<RelativeClauses>,
+	pub inner: GadriSumtiInner,
+	pub ku: Option<Ku>,
+}
+
+#[derive(Debug)]
+pub enum Gadri {
+	Le(Le),
+	La(La),
+}
+
+#[derive(Debug)]
+pub enum GadriSumtiInner {
+	Selbri(Option<Quantifier>, Box<Selbri>, Option<RelativeClauses>),
+	Sumti(Quantifier, Box<Sumti>),
 }
 
 #[derive(Debug)]
 pub struct LaSumti {
 	pub la: La,
-	pub inner: LaSumtiInner,
-}
-
-#[derive(Debug)]
-pub enum LaSumtiInner {
-	Cmevla(Box<[Cmevla]>),
-	Selbri(Selbri),
+	pub inner: Box<[Cmevla]>,
 }
 
 #[derive(Debug)]

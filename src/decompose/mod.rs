@@ -58,7 +58,7 @@ type Input<'input> = std::str::Split<'input, impl Fn(char) -> bool>;
 #[cfg(not(feature = "type-alias-impl-trait"))]
 type Input<'input> = std::str::Split<'input, fn(char) -> bool>;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 enum State<'input> {
 	Normal,
 	Decomposing { rest: &'input str },
@@ -67,6 +67,7 @@ enum State<'input> {
 /// The iterator used for decomposition.
 ///
 /// The public way to create an instance of this type is [`decompose`], and the documentation for decomposition in general is there.
+#[derive(Debug)]
 pub struct Decomposer<'input> {
 	input_start: *const u8,
 	split: Input<'input>,

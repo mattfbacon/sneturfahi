@@ -3,7 +3,7 @@
 
 use std::cell::Cell;
 
-use debug_rule::debug_rule;
+use macros::debug_rule;
 
 std::thread_local! {
 	pub static PARSER_LEVEL: Cell<usize> = Cell::new(0);

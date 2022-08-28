@@ -447,7 +447,7 @@ mod test {
 					.map(Result::unwrap)
 					.map(|token| (token.selmaho, token.span.slice(raw).unwrap()))
 					.collect();
-				assert_eq!(result, &[$((super::selmaho::Selmaho::$ttype, $text),)*] as &[(super::selmaho::Selmaho, &str)]);
+				assert_eq!(result, &[$(($ttype, $text),)*] as &[(super::selmaho::Selmaho, &str)]);
 			}
 		};
 		($name:ident, $raw:expr, $actual:expr) => {

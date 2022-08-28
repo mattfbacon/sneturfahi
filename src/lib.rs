@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![deny(
 	absolute_paths_not_starting_with_crate,
+	elided_lifetimes_in_paths,
+	explicit_outlives_requirements,
 	future_incompatible,
 	keyword_idents,
 	macro_use_extern_crate,
@@ -13,7 +15,13 @@
 	private_in_public,
 	rust_2018_idioms
 )]
-#![warn(clippy::pedantic, missing_docs, missing_copy_implementations)]
+#![warn(
+	clippy::pedantic,
+	missing_copy_implementations,
+	missing_debug_implementations,
+	missing_docs,
+	unused_qualifications
+)]
 #![allow(
 	clippy::tabs_in_doc_comments, // rustfmt formats our doc comments and we use tabs
 	clippy::redundant_else, // sometimes it's clearer

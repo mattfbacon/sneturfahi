@@ -9,6 +9,8 @@ pub enum Error {
 		expected: Cow<'static, [Selmaho]>,
 		got: Option<Token>,
 	},
+	#[error("post-condition failed: {0:?}")]
+	PostConditionFailed(&'static str),
 	#[error("nom error: {0:?}")]
 	Nom(nom::error::ErrorKind),
 	#[error("expected body of zo quote, got EOF")]

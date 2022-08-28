@@ -4,8 +4,8 @@ name = "sneturfahi"
 version = "0.1.0"
 
 [dependencies]
-debug-rule = { path = "debug-rule" }
 log = "0.4"
+macros = { path = "macros" }
 nom = "7"
 thiserror = "1"
 

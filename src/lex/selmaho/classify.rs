@@ -295,6 +295,8 @@ impl Selmaho {
 				"ve'oi" => experimental!(Self::Veho),
 				"vi'a" | "vi'u" | "vi'e" | "vi'i" => Self::Viha,
 				"vu'o" => Self::Vuho,
+				"cu'a" | "de'o" | "fa'i" | "fe'a" | "fe'i" | "fu'u" | "ge'a" | "gei" | "ju'u" | "ne'o" | "pa'i" | "pi'a" | "pi'i" | "re'a" | "ri'o" | "sa'i" | "sa'o" | "si'i" | "su'i" | "te'a" | "va'a" | "vu'u" => Self::Vuhu,
+				"bai'ei" | "bai'i" | "bai'i'i" | "be'ei'oi" | "bei'u'i" | "boi'ai" | "ca'ei'a" | "ca'o'e" | "ca'oi" | "ci'ai'u" | "ci'au'i" | "ci'o'au" | "cu'ai" | "cu'au'ei" | "da'a'au" | "de'au'u" | "dei'au'o" | "di'ei'o'au" | "du'a'e" | "du'a'o" | "du'ei" | "fa'ai" | "fa'ai'ai" | "fa'au" | "fau'i" | "fe'au'u" | "fe'ei" | "fei'i" | "ga'ai" | "gau'a" | "gu'ai" | "gu'au'i" | "jau'au" | "je'e'e" | "ji'e'ai" | "ji'i'u" | "ji'i'u'u" | "joi'i" | "ka'au" | "ku'au'a" | "lau'au" | "ma'au" | "mai'u" | "ma'o'e" | "me'ei'o" | "mu'ai'au" | "mu'au" | "nei'au" | "ne'oi" | "no'au'au" | "pau'a'u" | "pau'ei" | "pau'oi" | "pei'e'a" | "pi'au'e" | "pi'ei" | "pi'ei'au" | "pi'ei'oi" | "po'i'oi" | "ra'i'e" | "rai'i" | "ru'ei" | "sau'i" | "se'i'a'o" | "si'oi'e" | "su'i'e" | "su'i'o" | "tai'e'i" | "tai'i'e" | "te'au'u" | "te'i'ai" | "tei'au" | "te'o'a" | "te'oi'i" | "to'ei'au" | "vau'i" | "vei'u" | "vi'oi'au" | "vo'au'u" | "xa'ai" | "xo'ei" | "xo'e'o'ei" | "za'ei" | "zei'i'au" | "zi'a'o" | "zu'oi" => experimental!(Self::Vuhu),
 				"xi" => Self::Xi,
 				"fau'e" | "te'ai" | "xi'e" | "xi'i" => experimental!(Self::Xi),
 				word if !word.is_empty() && word.chars().all(|ch| ch == 'y') => Self::Y,

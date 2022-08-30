@@ -77,7 +77,7 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	quote! {
 		#[automatically_derived]
 		impl #impl_generics Parse for #name #ty_generics #where_clause {
-			fn parse(input: &[Token]) -> crate::parse::ParseResult<'_, Self> {
+			fn parse(input: &[crate::lex::Token]) -> crate::parse::ParseResult<'_, Self> {
 				#body
 			}
 		}

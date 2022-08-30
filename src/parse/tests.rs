@@ -163,6 +163,8 @@ const CLL_EXAMPLES: &'static [&'static str] = &[
 #[test]
 fn cll_examples() {
 	for example in CLL_EXAMPLES {
+		// this output won't show unless the test fails, in which case the last line will helpfully indicate which test failed
+		eprintln!("parsing {example:?}");
 		crate::parse(&crate::lex(example).collect::<Result<Vec<_>, _>>().unwrap()).unwrap();
 	}
 }

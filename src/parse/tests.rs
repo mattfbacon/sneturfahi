@@ -69,8 +69,7 @@ const CLL_EXAMPLES: &'static [&'static str] = &[
 	"ti xamgu zdani",
 	"ti xamgu be do bei mi zdani",
 	"ti xamgu be do bei mi be'o zdani",
-	// TODO mekso
-	// "ti cmalu be le ka se canlu bei lo'e ckule be'o nixli be le nanca be li mu be'o bei lo merku be'o bo ckule la bryklyn loi pemci le mela nu,IORK prenu le jecta",
+	"ti cmalu be le ka se canlu bei lo'e ckule be'o nixli be le nanca be li mu be'o bei lo merku be'o bo ckule la bryklyn loi pemci le mela nu,IORK prenu le jecta",
 	"mi klama be le zarci bei le zdani",
 	"mi klama be le zarci bei le zdani be'o",
 	"mi klama le zarci le zdani",
@@ -106,9 +105,8 @@ const CLL_EXAMPLES: &'static [&'static str] = &[
 	"la djan klama le zarci",
 	"la djan go'i troci",
 	"la djan klama be le zarci be'o traci",
-	// TODO mekso
-	// "li vo nu'a su'i li re li re",
-	// "mi jimpe tu'a loi nu'a su'i nabmi",
+	"li vo nu'a su'i li re li re",
+	"mi jimpe tu'a loi nu'a su'i nabmi",
 	"la prim palvr pamoi cusku",
 	// CLL example says "la an,iis" which is now invalid ca'i byfy
 	"la anis joi la asun bruna remei",

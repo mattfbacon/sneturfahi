@@ -6,6 +6,12 @@ use nom::Parser;
 use crate::lex::{Selmaho, Token};
 use crate::span::Span;
 
+pub mod connectives;
+pub use connectives::{Gek, Gik, Guhek, Interval, Joik, JoikEk, JoikJek};
+
+pub mod mekso;
+pub use mekso::{Expression as Mekso, Operator as MeksoOperator};
+
 pub(super) trait Parse: Sized {
 	fn parse(input: &[Token]) -> super::ParseResult<'_, Self>;
 }
@@ -175,6 +181,8 @@ token_types! {
 	Be,
 	Beho,
 	Bei,
+	Bihe,
+	Bihi,
 	Bo,
 	Boi,
 	By,
@@ -191,7 +199,10 @@ token_types! {
 	Fehu,
 	Fiho,
 	Foi,
+	Fuha,
 	Fuhivla,
+	Ga,
+	Gaho,
 	Gehu,
 	Gi,
 	Gismu,
@@ -201,6 +212,7 @@ token_types! {
 	I,
 	Ja,
 	Jai,
+	Johi,
 	Joi,
 	Ke,
 	Kehe,
@@ -208,6 +220,7 @@ token_types! {
 	Ki,
 	Koha,
 	Ku,
+	Kuhe,
 	Kuho,
 	La,
 	Lahe,
@@ -221,22 +234,28 @@ token_types! {
 	Lu,
 	Luhu,
 	Lujvo,
+	Maho,
 	Me,
 	Mehu,
+	Mohe,
 	Mohi,
 	Moi,
 	Na,
 	Nahe,
+	Nahu,
 	Nai,
+	Nihe,
 	Noi,
 	Nu,
 	Nuha,
 	Pa,
+	Peho,
 	Pu,
 	Raho,
 	Roi,
 	Se,
 	Tahe,
+	Tehu,
 	Tei,
 	Va,
 	Veha,
@@ -244,6 +263,7 @@ token_types! {
 	Vei,
 	Viha,
 	Vuho,
+	Vuhu,
 	Zaho,
 	Zeha,
 	Zi,
@@ -389,7 +409,7 @@ pub struct Selbri {
 #[derive(Debug, Parse)]
 pub enum SelbriBefore {
 	Na(Na),
-	Tag(TagWord),
+	Tag(TagWords),
 }
 
 #[derive(Debug, Parse)]
@@ -400,41 +420,31 @@ pub struct Selbri1(#[parse(with = "super::separated(true)")] Separated<Selbri2, 
 #[repr(transparent)]
 pub struct Selbri2(#[parse(with = "super::many1(Parse::parse)")] Box<[Selbri3]>);
 
-pub type Selbri3 = Separated<Selbri4, JoikJek>;
-
-pub type Selbri4 = Separated<Selbri5, (JoikJek, Bo)>;
-
-pub type Selbri5 = Separated<Selbri6, Bo>;
+#[derive(Debug, Parse)]
+pub struct Selbri3(
+	pub Selbri4,
+	#[parse(with = "super::many0(Parse::parse)")] pub Box<[Selbri3ConnectedPost]>,
+);
 
 #[derive(Debug, Parse)]
-pub struct Selbri6 {
-	#[parse(with = "super::many0(Parse::parse)")]
-	pub connected: Box<[Selbri6ConnectedPre]>,
-	pub last: TanruUnit,
+pub enum Selbri3ConnectedPost {
+	Normal(JoikJek, Selbri4),
+	Parenthesized(Joik, Option<TagWords>, Ke, Selbri2, Option<Kehe>),
 }
 
-#[derive(Debug, Parse)]
-pub struct Selbri6ConnectedPre {
-	pub nahe: Option<Nahe>,
-	pub guha: Guha,
-	#[cut]
-	pub first: Selbri,
-	pub gi: Gi,
-}
+pub type Selbri4 = Separated<Selbri5, (JoikJek, Option<TagWords>, Bo)>;
 
 #[derive(Debug, Parse)]
-pub struct JoikJek {
-	pub na: Option<Na>,
-	pub se: Option<Se>,
-	pub word: JoikJekWord,
-	pub nai: Option<Nai>,
-}
+pub struct Selbri5(
+	#[parse(with = "super::many0(Parse::parse)")] pub Box<[NaheGuhekTGik<Selbri>]>,
+	pub Selbri6,
+);
 
 #[derive(Debug, Parse)]
-pub enum JoikJekWord {
-	Ja(Ja),
-	Joi(Joi),
-}
+pub struct NaheGuhekTGik<T>(pub Option<Nahe>, Guhek, T, Gik);
+
+#[derive(Debug, Parse)]
+pub struct Selbri6(Separated<TanruUnit, Bo>);
 
 #[derive(Debug, Parse)]
 #[repr(transparent)]
@@ -450,7 +460,7 @@ pub struct TanruUnit1 {
 
 #[derive(Debug, Parse)]
 pub enum BeforeTanruUnit {
-	Jai { jai: Jai, tag: Option<TagWord> },
+	Jai { jai: Jai, tag: Option<TagWords> },
 	Nahe(Nahe),
 	Se(Se),
 }
@@ -617,8 +627,19 @@ pub struct Sumti {
 	pub vuho_relative: Option<VuhoRelative>,
 }
 
-pub type Sumti1 = Separated<Sumti2, SumtiConnective>;
-pub type Sumti2 = Separated<SumtiComponentOuter, (SumtiConnective, Bo)>;
+#[derive(Debug, Parse)]
+pub struct Sumti1(
+	pub Sumti2,
+	#[parse(with = "super::many0(Parse::parse)")] pub Box<[SumtiLikeConnectedPost<Sumti>]>,
+);
+
+#[derive(Debug, Parse)]
+pub enum SumtiLikeConnectedPost<T> {
+	Normal(JoikEk, T),
+	Grouped(JoikEk, Option<TagWords>, Ke, T, Option<Kehe>),
+}
+
+pub type Sumti2 = Separated<Sumti3, (JoikEk, Option<TagWords>, Bo)>;
 
 #[derive(Debug, Parse)]
 pub struct VuhoRelative {
@@ -653,7 +674,16 @@ pub struct NoiRelativeClause {
 }
 
 #[derive(Debug, Parse)]
-pub enum SumtiComponentOuter {
+pub struct Sumti3(
+	#[parse(with = "super::many0(Parse::parse)")] pub Box<[Sumti3ConnectedPre]>,
+	Sumti4,
+);
+
+#[derive(Debug, Parse)]
+pub struct Sumti3ConnectedPre(pub Gek, pub Sumti, pub Gik);
+
+#[derive(Debug, Parse)]
+pub enum Sumti4 {
 	Normal {
 		quantifier: Option<Quantifier>,
 		inner: SumtiComponent,
@@ -667,26 +697,7 @@ pub enum SumtiComponentOuter {
 	},
 }
 
-#[derive(Debug, Parse)]
-pub enum Quantifier {
-	Mekso {
-		vei: Vei,
-		#[cut]
-		mekso: Mekso,
-		veho: Option<Veho>,
-	},
-	Number {
-		number: Number,
-		#[parse(not = "Moi")]
-		boi: Option<Boi>,
-	},
-}
-
-#[derive(Debug, Parse)]
-pub struct Mekso;
-
-#[derive(Debug, Parse)]
-pub struct MeksoOperator;
+pub type Quantifier = mekso::Operand4;
 
 #[derive(Debug, Parse)]
 pub struct Number {
@@ -739,20 +750,36 @@ pub enum SumtiComponent {
 	LerfuString(LerfuString, Option<Boi>),
 	Zo(ZoSumti),
 	Zoi(ZoiSumti),
-	Li(Li, Mekso, Option<Loho>),
+	Li(Li, #[cut] Mekso, Option<Loho>),
 }
 
-#[derive(Debug, Parse)]
+#[derive(Debug)]
 pub struct LohuSumti {
 	pub lohu: Lohu,
-	#[parse(with = "super::many0(Token::parse)")]
 	pub inner: Box<[Token]>,
 	pub lehu: Lehu,
+}
+
+impl Parse for LohuSumti {
+	fn parse(input: &[Token]) -> super::ParseResult<'_, Self> {
+		nom::combinator::map(
+			nom::sequence::tuple((
+				Parse::parse,
+				nom::combinator::cut(nom::multi::many_till(Parse::parse, Parse::parse)),
+			)),
+			|(lohu, (inner, lehu))| Self {
+				lohu,
+				inner: inner.into_boxed_slice(),
+				lehu,
+			},
+		)(input)
+	}
 }
 
 #[derive(Debug, Parse)]
 pub struct LuSumti {
 	pub lu: Lu,
+	#[cut]
 	pub text: Text,
 	pub lihu: Option<Lihu>,
 }
@@ -769,12 +796,6 @@ pub struct ModifiedSumti {
 pub enum SumtiModifier {
 	Lahe(Lahe),
 	NaheBo(Nahe, Bo),
-}
-
-#[derive(Debug, Parse)]
-pub enum SumtiConnective {
-	A(A),
-	Joi(Joi),
 }
 
 #[derive(Debug, Parse)]

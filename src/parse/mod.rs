@@ -63,6 +63,8 @@ fn separated<'a, Item: Parse, Separator: Parse>(
 	}
 }
 
+/// Parse tokens into a concrete syntax tree.
+#[allow(clippy::missing_errors_doc)] // obvious
 pub fn parse(input: &[Token]) -> Result<cst::Root, error::WithLocation<'_>> {
 	nom::Finish::finish(all_consuming(cst::Text::parse)(input)).map(|(rest, root)| {
 		debug_assert!(rest.is_empty());

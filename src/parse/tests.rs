@@ -121,7 +121,7 @@ assert_parse![
 	"li vo nu'a su'i li re li re",
 	"mi jimpe tu'a loi nu'a su'i nabmi",
 	"la prim palvr pamoi cusku",
-	// CLL example says "la an,iis" which is now invalid ca'i byfy
+	// corrected to remove glides
 	"la anis joi la asun bruna remei",
 	"ti nu zdile kei kumfa",
 	"ti zdile kumfa",

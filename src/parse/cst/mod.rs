@@ -79,10 +79,6 @@ pub(super) trait SelmahoTypeRaw:
 {
 }
 
-pub(super) trait SelmahoType: SelmahoTypeRaw {
-	fn set_bahe(&mut self, bahe: Box<[Bahe]>);
-}
-
 macro_rules! token_types {
 	(@raw $name:ident) => {
 #[derive(Debug)]
@@ -166,17 +162,12 @@ impl SelmahoTypeRaw for $name {}
 				}
 			}
 			impl SelmahoTypeRaw for $name {}
-			impl SelmahoType for $name {
-				fn set_bahe(&mut self, bahe: Box<[Bahe]>) {
-					self.bahe = bahe;
-				}
-			}
 
 			impl Parse for $name {
 				fn parse<'a>(input: &'a [Token]) -> super::ParseResult<'a, Self> {
 					let (input, bahe) = nom::Parser::parse(&mut super::many0(super::selmaho_raw::<Bahe>), input)?;
 					let (rest, mut matched) = super::selmaho_raw::<Self>(input)?;
-					matched.set_bahe(bahe);
+					matched.bahe = bahe;
 					Ok((rest, matched))
 				}
 			}

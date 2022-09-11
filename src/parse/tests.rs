@@ -281,4 +281,97 @@ assert_parse![
 	"li abu bi'epi'i xy bi'ete'a re su'i by bi'epi'i xy su'i cy",
 	"me'o vo",
 	"me'o re su'i re",
+	// 7.1
+	// (no Lojban examples)
+	// 7.2
+	"mi'e djan doi frank mi cusku lu mi bajra li'u do",
+	"do klama le zarci",
+	"ko klama le zarci",
+	"mi viska ko",
+	"mi viska le prenu poi prami ko",
+	// 7.3
+	"le ti bloti",
+	"le vi bloti",
+	"ti noi bloti",
+	// 7.4
+	"do na nelci loi mlatu .i di'u jitfa jufra",
+	"la saimn cusku di'e",
+	"dei jetnu jufra",
+	"do'i jetnu jufra",
+	"mi prami la djein .i mi nelci la'e di'u",
+	"mi prami la djein .i mi nelci di'u",
+	// 7.5
+	"la alis klama le zarci .i ko'a blanu",
+	"la alis klama le zarci .i ko'a goi la alis cu blanu",
+	"la alis klama le zarci .i la alis goi ko'a cu blanu",
+	"la alis goi ko'a klama le zarci .i ko'a cu blanu",
+	"ti slasi je mlatu bo cidja lante gacri cei broda .i le crino broda cu barda .i le xunre broda cu cmalu",
+	"mi klama cei brode le zarci .i do brode",
+	"broda ke brode brodi",
+	"mi viska le gerku .i gy cusku zo arf",
+	"le ninmu goi la sam cu klama le zarci",
+	// 7.6
+	"la alis sipna ne'i le ri kumfa",
+	"la alis sipna ne'i le la alis kumfa",
+	"mi prami mi",
+	"la djan viska le tricu .i ri se jadni le ri jimca",
+	"lo smuci .i lo forca .i la rik pilno rixire .i la alis pilno riximu",
+	"lo smuci .i lo forca .i la rik pilno ra .i la alis pilno ru",
+	"la alis klama le zarci .i ri goi ko'a blanu",
+	"xu zo djan cmene do .i go'i",
+	"mi klama le zarci .i do go'i",
+	"mi ba klama le zarci .i mi nelci le si'o mi go'i .i do go'e",
+	"mi nelci le si'o go'i",
+	"le xekri mlatu cu klama le zarci .i le go'i cu cadzu le bisli",
+	"mi nupre le nu mi go'o .i ba dunda le jdini le bersa .i ba dunda le zdani le tixnu",
+	"mi se pluka le nu do pensi le nu nei kei pu le nu do zukte",
+	"mi ba klama ca le nu do no'a",
+	"mi ba lumci le mi karce",
+	"mi go'i",
+	"mi go'i ra'o",
+	"la djan cusku lu mi klama le zarci li'u .i la alis cusku lu mi go'i li'u",
+	// 7.7
+	"mi klama le bartu be le zdani le nenri be le zdani zu'i zu'i",
+	"loi jmive cu se zbasu fi loi selci",
+	"loi jmive cu se zbasu zo'e fi loi selci",
+	"loi jmive cu se zbasu zi'o loi selci",
+	"mi zbasu le dinju loi mudri",
+	"zi'o zbasu le dinju loi mudri",
+	"mi zbasu zi'o loi mudri",
+	"mi zbasu le dinju zi'o",
+	"mi troci le nu mi co'e le vorme",
+	// 7.8
+	"mi lumci vo'a",
+	"mi klama le zarci vo'e",
+	"mi prami do soi vo'a vo'e",
+	"mi prami do soi vo'a",
+	"mi bajykla ti ta soi vo'e .i mi bajykla ti ta soi vo'e vo'i .i soi vo'e vo'i mi bajykla ti ta",
+	"mi bajykla ti soi vo'i se'u ta",
+	// 7.9
+	"do klama ma",
+	"do mo",
+	"ma cmene do",
+	"doi ma",
+	"lo mo prenu cu darxi do .i barda",
+	"ma djuno ma",
+	// 7.10
+	"mi catlu lo mlatu poi zbasu ke'a lei slasi",
+	"mi catlu lo mlatu poi zo'e zbasu ke'a lei slasi",
+	"mi catlu lo mlatu poi zbasu lei slasi",
+	"mi catlu lo mlatu poi ke'a zbasu lei slasi",
+	// 7.11
+	"le ka ce'u gleki",
+	"le ka gleki ce'u",
+	// 7.12
+	"la djan cu lafmuvgau da poi grana ku'o gi'e desygau da",
+	// 7.13
+	// (no examples)
+	// 7.14
+	"ko'a du le nanmu",
+	"ko'a mintu le nanmu",
+	// 7.15
+	"donta'a",
+	"donma'o",
+	// corrected to remove glides
+	"fo'a goi le kulnrsu'omi .i lo fo'arselsanga",
 ];

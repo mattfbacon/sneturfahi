@@ -1,5 +1,7 @@
 #![allow(missing_docs, missing_copy_implementations)]
 
+// https://raw.githubusercontent.com/lojban/camxes-py/master/camxes_py/parsers/camxes_ilmen.peg
+
 use macros::Parse;
 use nom::Parser;
 

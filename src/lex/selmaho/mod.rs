@@ -1,3 +1,7 @@
+//! The [`Selmaho`] type
+//!
+//! This module centers around [`Selmaho`], and also provides various methods on it.
+
 mod classify;
 mod display;
 
@@ -112,6 +116,7 @@ pub enum Selmaho {
 	To,
 	Toi,
 	Tuhe,
+	Tuhu,
 	Ui,
 	Va,
 	Vau,
@@ -517,6 +522,7 @@ impl Selmaho {
 			| Self::To
 			| Self::Toi
 			| Self::Tuhe
+			| Self::Tuhu
 			| Self::Ui
 			| Self::Va
 			| Self::Vau

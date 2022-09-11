@@ -196,6 +196,11 @@ impl Selmaho {
 				"li'ai" | "na'au" => experimental!(Self::Li),
 				"li'u" => Self::Lihu,
 				"lo'o" => Self::Loho,
+				"lo'u" => Self::Lohu,
+				"la'ai" => experimental!(Self::Lohu),
+				"lu" => Self::Lu,
+				"lu'u" => Self::Luhu,
+				"la'au" | "tu'ai" => experimental!(Self::Lu),
 				"mai" | "mo'o" => Self::Mai,
 				"sai'ei" | "ju'ai" | "lai'a" | "ba'ai" => experimental!(Self::Mai),
 				"ma'o" => Self::Maho,
@@ -268,15 +273,8 @@ impl Selmaho {
 				"to" | "to'i" => Self::To,
 				"toi" => Self::Toi,
 				"tu'e" => Self::Tuhe,
-				"a'a" | "a'e" | "a'i" | "a'o" | "a'u" | "au" | "i'a" | "ia" | "i'e" | "ie" | "ua"
-				| "u'e" | "u'i" | "ue" | "ui" | "u'o" | "uo" | "u'u" | "uu" | "i'i" | "ii" | "i'o"
-				| "io" | "i'u" | "iu" | "e'a" | "e'e" | "e'i" | "ei" | "e'o" | "e'u" | "o'a" | "o'e"
-				| "o'i" | "oi" | "o'o" | "o'u" | "ru'a" | "se'o" | "ti'e" | "za'a" | "ju'a" | "ka'u"
-				| "ba'a" | "ca'e" | "pe'i" | "su'a" | "ba'u" | "ra'u" | "sa'e" | "sa'u" | "ta'o"
-				| " to'u" | "va'i" | "je'u" | "ke'u" | "la'a" | "li'a" | "da'i" | "do'a" | "mu'a"
-				| "pa'e" | "zu'u" | "re'e" | "ro'a" | "ro'e" | "ro'i" | "ro'o" | "ro'u" | "ri'e"
-				| "se'a" | "be'u" | "se'i" | "vu'e" | "fu'i" | "ga'i" | "ju'o" | "le'o" | "dai"
-				| "zo'o" | "xu" | "ge'e" | "ki'a" | "bu'o" | "xu'o" => Self::Ui,
+				"tu'u" => Self::Tuhu,
+				"a'a" | "a'e" | "a'i" | "ai" | "a'o" | "a'u" | "au" | "ba'a" | "ba'u" | "be'u" | "bi'u" | "bu'o" | "ca'e" | "da'i" | "dai" | "do'a" | "e'a" | "e'e" | "e'i" | "ei" | "e'o" | "e'u" | "fu'i" | "ga'i" | "ge'e" | "i'a" | "ia" | "i'e" | "ie" | "i'i" | "ii" | "i'o" | "io" | "i'u" | "iu" | "ja'o" | "je'u" | "ji'a" | "jo'a" | "ju'a" | "ju'o" | "ka'u" | "kau" | "ke'u" | "ki'a" | "ku'i" | "la'a" | "le'o" | "li'a" | "li'o" | "mi'u" | "mu'a" | "na'i" | "o'a" | "o'e" | "o'i" | "oi" | "o'o" |"o'u" | "pa'e" | "pau" |"pe'a" | "pe'i" | "po'o" | "ra'u" | "re'e" | "ri'e" | "ro'a" | "ro'e" | "ro'i" | "ro'o" | "ro'u" | "ru'a" | "sa'a" | "sa'e" | "sa'u" | "se'a" |"se'i" | "se'o" | "si'a" | "su'a" | "ta'o" | "ta'u" | "ti'e" | "to'u" | "u'a" | "ua" | "u'e" | "ue" | "u'i" | "ui" | "u'o" | "uo" | "u'u" | "uu" | "va'i" | "vu'e" | "xu" | "za'a" | "zo'o" | "zu'u" => Self::Ui,
 				"fai'a" | "rau'o" | "si'ai" | "tai'a" | "tei'i" | "tei'o" | "uau'o" | "ue'e" | "uei'e" | "ui'a" | "ui'o" | "va'u'au" | "fu'ei'a" | "fu'ei'e" | "fu'ei'i" | "fi'ei'o" | "fu'ei'u" | "ii'au" | "au'o" | "a'u'u" | "ca'e'ei" | "ci'ai" | "cu'ei" | "cu'ei'a" | "cu'ei'ai" | "cu'ei'e" | "cu'ei'ei" | "cu'ei'i" | "cu'ei'o" | "cu'ei'oi" | "cu'ei'u" | "cu'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u'u" | "coi'o'e" | "doi'au" | "e'au" | "ei'u" | "mu'au'oi" | "oi'a" | "pau'ai" | "pau'i" | "zei'i" | "su'a'a" | "zi'ei" | "u'ai" | "uai" | "uau" | "ue'i" | "ui'i" | "uo'o" | "uu'i" | "ia'u" | "ie'e" | "ie'i"
 				| "a'au" | "ai'i" | "au'u" | "ci'au'u'au'i" | "e'ei" | "ei'au" | "ei'e" | "ei'i"
 				| "mau'u" | "mi'au" | "ne'au" | "oi'o" | "oi'u" | "ri'ai" | "sei'i" | "si'au" | "jei'u"

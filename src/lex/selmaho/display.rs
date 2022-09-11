@@ -29,6 +29,8 @@ impl super::Selmaho {
 	/// # use sneturfahi::lex::selmaho::Selmaho;
 	/// assert_eq!(Selmaho::ZoiDelimiter.as_repr(), "(zoi delimiter)");
 	/// ```
+	#[allow(clippy::too_many_lines)] // giant match block
+	#[must_use]
 	pub fn as_repr(self) -> &'static str {
 		match self {
 			// regular cmavo
@@ -134,6 +136,7 @@ impl super::Selmaho {
 			Self::To => "TO",
 			Self::Toi => "TOI",
 			Self::Tuhe => "TUhE",
+			Self::Tuhu => "TUhU",
 			Self::Ui => "UI",
 			Self::Va => "VA",
 			Self::Vau => "VAU",

@@ -84,8 +84,54 @@ pub(super) trait SelmahoType: SelmahoTypeRaw {
 }
 
 macro_rules! token_types {
-	($($name:ident,)*) => {
-		$(
+	(@raw $name:ident) => {
+#[derive(Debug)]
+pub struct $name {
+	pub experimental: bool,
+	pub span: Span,
+}
+
+impl TryFrom<Token> for $name {
+	type Error = super::Error;
+
+	fn try_from(token: Token) -> Result<Self, super::Error> {
+		if token.selmaho == Selmaho::$name {
+			Ok(Self {
+				experimental: token.experimental,
+				span: token.span,
+			})
+		} else {
+			Err(super::Error::ExpectedGot {
+				expected: (&[Selmaho::$name] as &[Selmaho]).into(),
+				got: Some(token),
+			})
+		}
+	}
+}
+
+impl TryFrom<Option<Token>> for $name {
+	type Error = super::Error;
+
+	fn try_from(token: Option<Token>) -> Result<Self, super::Error> {
+		token
+			.ok_or(super::Error::ExpectedGot {
+				expected: (&[Selmaho::$name] as &[Selmaho]).into(),
+				got: None,
+			})
+			.and_then(Self::try_from)
+	}
+}
+
+impl SelmahoTypeRaw for $name {}
+
+			impl Parse for $name {
+				fn parse<'a>(input: &'a [Token]) -> super::ParseResult<'a, Self> {
+					super::selmaho_raw::<$name>(input)
+				}
+			}
+
+	};
+	(@single $name:ident) => {
 			#[derive(Debug)]
 			pub struct $name {
 				pub bahe: Box<[Bahe]>,
@@ -134,51 +180,21 @@ macro_rules! token_types {
 					Ok((rest, matched))
 				}
 			}
-		)*
-	}
+	};
+	($(,)?) => {};
+	($(,)? $name:ident $($rest:tt)*) => {
+		token_types!(@single $name);
+		token_types!($($rest)*);
+	};
+	($(,)? #[raw] $name:ident $($rest:tt)*) => {
+		token_types!(@raw $name);
+		token_types!($($rest)*);
+	};
 }
-
-#[derive(Debug)]
-pub struct Bahe {
-	pub experimental: bool,
-	pub span: Span,
-}
-
-impl TryFrom<Token> for Bahe {
-	type Error = super::Error;
-
-	fn try_from(token: Token) -> Result<Self, super::Error> {
-		if token.selmaho == Selmaho::Bahe {
-			Ok(Self {
-				experimental: token.experimental,
-				span: token.span,
-			})
-		} else {
-			Err(super::Error::ExpectedGot {
-				expected: (&[Selmaho::Bahe] as &[Selmaho]).into(),
-				got: Some(token),
-			})
-		}
-	}
-}
-
-impl TryFrom<Option<Token>> for Bahe {
-	type Error = super::Error;
-
-	fn try_from(token: Option<Token>) -> Result<Self, super::Error> {
-		token
-			.ok_or(super::Error::ExpectedGot {
-				expected: (&[Selmaho::Bahe] as &[Selmaho]).into(),
-				got: None,
-			})
-			.and_then(Self::try_from)
-	}
-}
-
-impl SelmahoTypeRaw for Bahe {}
 
 token_types! {
 	A,
+	#[raw] Bahe,
 	Bai,
 	Be,
 	Beho,
@@ -233,8 +249,8 @@ token_types! {
 	Li,
 	Lihu,
 	Loho,
-	Lohu,
-	Lu,
+	#[raw] Lohu,
+	#[raw] Lu,
 	Luhu,
 	Lujvo,
 	Maho,
@@ -257,23 +273,31 @@ token_types! {
 	Raho,
 	Roi,
 	Se,
+	Sehu,
+	Sei,
+	Soi,
 	Tahe,
 	Tehu,
 	Tei,
+	To,
+	Toi,
+	Ui,
 	Va,
+	Vau,
 	Veha,
 	Veho,
 	Vei,
 	Viha,
 	Vuho,
 	Vuhu,
+	Xi,
 	Zaho,
 	Zeha,
 	Zi,
 	Zihe,
-	Zo,
+	#[raw] Zo,
 	Zohu,
-	Zoi,
+	#[raw] Zoi,
 }
 
 #[derive(Parse)]

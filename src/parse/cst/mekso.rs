@@ -1,8 +1,8 @@
 // https://raw.githubusercontent.com/lojban/camxes-py/master/camxes_py/parsers/camxes_ilmen.peg
 
 use super::{
-	Bihe, Bo, Boi, Fuha, Gek, Gik, Johi, JoikEk, JoikJek, Ke, Kehe, Kuhe, LerfuString, Luhu, Maho,
-	Mekso, Mohe, Moi, Nahe, NaheGuhekTGik, Nahu, Nihe, Number, Parse, Peho, Se, Selbri, Separated,
+	Bihe, Bo, Boi, Fuha, Gek, Gik, Johi, JoikEk, JoikJek, Ke, Kehe, Kuhe, Luhu, Maho, Mekso,
+	MiscNumbers, Mohe, Moi, Nahe, NaheGuhekTGik, Nahu, Nihe, Parse, Peho, Se, Selbri, Separated,
 	Sumti, SumtiLikeConnectedPost, SumtiModifier, TagWords, Tehu, Veho, Vei, Vuhu,
 };
 
@@ -52,7 +52,6 @@ pub struct Operand2ConnectedPre(pub Gek, pub Operand, pub Gik);
 
 #[derive(Debug, Parse)]
 pub enum Operand3 {
-	Basic(Operand4),
 	Nihe(Nihe, #[cut] Selbri, Option<Tehu>),
 	Mohe(Mohe, #[cut] Sumti, Option<Tehu>),
 	Johi(
@@ -63,22 +62,8 @@ pub enum Operand3 {
 		Option<Tehu>,
 	),
 	Modified(OperandModifier, Operand, Option<Luhu>),
-	LerfuString(LerfuString, #[parse(not = "Moi")] Option<Boi>),
-}
-
-#[derive(Debug, Parse)]
-pub enum Operand4 {
-	Mekso {
-		vei: Vei,
-		#[cut]
-		mekso: Mekso,
-		veho: Option<Veho>,
-	},
-	Number {
-		number: Number,
-		#[parse(not = "Moi")]
-		boi: Option<Boi>,
-	},
+	Parenthesized(Vei, #[cut] Mekso, Option<Veho>),
+	Number(MiscNumbers, #[parse(not = "Moi")] Option<Boi>),
 }
 
 pub type OperandModifier = SumtiModifier;

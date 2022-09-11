@@ -698,7 +698,11 @@ pub enum Sumti4 {
 	},
 }
 
-pub type Quantifier = mekso::Operand4;
+#[derive(Debug, Parse)] // similar to part of `mekso::Operand3`
+pub enum Quantifier {
+	Mekso(Vei, #[cut] Mekso, Option<Veho>),
+	Number(Number, #[parse(not = "Moi")] Option<Boi>),
+}
 
 #[derive(Debug, Parse)]
 pub struct Number {
@@ -720,7 +724,8 @@ pub struct LerfuString {
 	pub rest: Box<[NumberRest]>,
 }
 
-pub type MiscNumbers = Box<[NumberRest]>;
+#[derive(Debug, Parse)]
+pub struct MiscNumbers(#[parse(with = "super::many1(Parse::parse)")] Box<[NumberRest]>);
 
 #[derive(Debug, Parse)]
 pub enum LerfuWord {

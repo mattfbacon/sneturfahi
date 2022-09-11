@@ -12,7 +12,7 @@ mod tests;
 use cst::Parse;
 pub use error::Error;
 
-pub type ParseResult<'a, T> = nom::IResult<&'a [Token], T, error::WithLocation<'a>>;
+type ParseResult<'a, T> = nom::IResult<&'a [Token], T, error::WithLocation<'a>>;
 
 fn many0<'a, T>(
 	parser: impl Parser<&'a [Token], T, error::WithLocation<'a>>,

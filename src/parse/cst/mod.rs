@@ -9,7 +9,7 @@ use crate::lex::{Selmaho, Token};
 use crate::span::Span;
 
 pub mod connectives;
-pub use connectives::{Gek, Gik, Guhek, Interval, Joik, JoikEk, JoikJek};
+pub use connectives::{Gek, Gihek, Gik, Guhek, Interval, Joik, JoikEk, JoikJek};
 
 pub mod mekso;
 pub use mekso::{Expression as Mekso, Operator as MeksoOperator};
@@ -133,6 +133,7 @@ impl SelmahoTypeRaw for $name {}
 				pub bahe: Box<[Bahe]>,
 				pub experimental: bool,
 				pub span: Span,
+				pub indicators: Box<[Indicators]>,
 			}
 
 			impl TryFrom<Token> for $name {
@@ -144,6 +145,7 @@ impl SelmahoTypeRaw for $name {}
 							bahe: Box::new([]),
 							experimental: token.experimental,
 							span: token.span,
+							indicators: Box::new([]),
 						})
 					} else {
 						Err(super::Error::ExpectedGot {
@@ -166,9 +168,11 @@ impl SelmahoTypeRaw for $name {}
 			impl Parse for $name {
 				fn parse<'a>(input: &'a [Token]) -> super::ParseResult<'a, Self> {
 					let (input, bahe) = nom::Parser::parse(&mut super::many0(super::selmaho_raw::<Bahe>), input)?;
-					let (rest, mut matched) = super::selmaho_raw::<Self>(input)?;
+					let (input, mut matched) = super::selmaho_raw::<Self>(input)?;
+					let (input, indicators) = super::many0(Indicators::parse).parse(input)?;
 					matched.bahe = bahe;
-					Ok((rest, matched))
+					matched.indicators = indicators;
+					Ok((input, matched))
 				}
 			}
 	};
@@ -194,14 +198,22 @@ token_types! {
 	Bihi,
 	Bo,
 	Boi,
+	#[raw] Bu,
 	By,
 	Caha,
+	Cai,
 	Cei,
 	Cmevla,
 	Co,
+	Coi,
 	Giha,
 	Cu,
 	Cuhe,
+	Daho,
+	Dohu,
+	Doi,
+	Tuhe,
+	Tuhu,
 	Fa,
 	Faha,
 	Faho,
@@ -210,7 +222,9 @@ token_types! {
 	Fiho,
 	Foi,
 	Fuha,
+	Fuhe,
 	Fuhivla,
+	Fuho,
 	Ga,
 	Gaho,
 	Gehu,
@@ -218,6 +232,7 @@ token_types! {
 	Gismu,
 	Goha,
 	Goi,
+	Niho,
 	Guha,
 	I,
 	Ja,
@@ -245,6 +260,7 @@ token_types! {
 	Luhu,
 	Lujvo,
 	Maho,
+	Mai,
 	Me,
 	Mehu,
 	Mohe,
@@ -322,90 +338,129 @@ pub enum EitherOrBoth<L, R> {
 	Left(L),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub struct WithFree<Inner> {
 	pub inner: Inner,
-	pub free: Box<[Free]>,
+	pub frees: Frees,
 }
 
-// todo
-#[derive(Debug)]
-pub struct Free;
+#[derive(Debug, Parse)]
+pub struct Frees(#[parse(with = "super::many0(Parse::parse)")] pub Box<[Free]>);
 
 pub type Root = Text;
 
 #[derive(Debug, Parse)]
 pub struct Text {
-	pub initial_i: Option<I>,
-	#[parse(with = "super::separated(true)")]
-	pub sentences: Separated<Sentence, I>,
+	pub initial_indicators: Option<Indicators>,
+	pub initial_frees: Frees,
+	pub initial_paragraph_separator: Option<ParagraphSeparator>,
+	pub paragraphs: Option<Paragraphs>,
 	pub faho: Option<Faho>,
 }
 
-#[derive(Debug)]
-pub struct Sentence {
-	pub prenexes: Box<[Prenex]>,
-	pub selbri: Option<(Option<Cu>, Selbri)>,
-	pub args: Box<[Arg]>,
-	/// How many of `args` were before `selbri`.
-	///
-	/// Will be equal to `args.len()` if there is no selbri.
-	pub num_args_before_selbri: usize,
+#[derive(Debug, Parse)]
+pub struct Paragraphs(
+	#[parse(with = "super::separated(true)")] Separated<Paragraph, ParagraphSeparator>,
+);
+
+#[derive(Debug, Parse)]
+pub struct Paragraph {
+	pub initial_sentence_separator: Option<SentenceSeparator>,
+	pub sentences: Sentences,
 }
 
-impl Parse for Sentence {
-	fn parse(mut input: &[Token]) -> super::ParseResult<'_, Self> {
-		let mut args = Vec::new();
+pub type Sentences = Separated<Sentences1, SentenceSeparator>;
+#[derive(Debug, Parse)]
+pub struct Sentences1(
+	#[parse(with = "super::many0(Parse::parse)")] pub Box<[Prenex]>,
+	pub Separated<Sentences2, ConnectedSentenceSeparator>,
+);
+pub type Sentences2 = Separated<Option<Sentences3>, CloseSentenceSeparator>;
 
-		macro_rules! args {
-			() => {
-				while let Ok((new_input, arg)) = Arg::parse(input) {
-					input = new_input;
-					args.push(arg);
-				}
-			};
-		}
-
-		let (new_input, prenexes) = super::many0(Prenex::parse).parse(input)?;
-		input = new_input;
-
-		args!();
-
-		let (new_input, cu) = nom::combinator::opt(Cu::parse)(input)?;
-		input = new_input;
-
-		// require selbri if cu is found
-		let (new_input, selbri) = if cu.is_some() {
-			nom::combinator::map(nom::combinator::cut(Selbri::parse), Some)(input)?
-		} else {
-			nom::combinator::opt(Selbri::parse)(input)?
-		};
-		let selbri = selbri.map(|selbri| (cu, selbri));
-		input = new_input;
-
-		let num_args_before_selbri = args.len();
-
-		// we only need to read more sumti if we encountered a selbri
-		if selbri.is_some() {
-			args!();
-		}
-
-		Ok((
-			input,
-			Self {
-				prenexes,
-				selbri,
-				args: args.into_boxed_slice(),
-				num_args_before_selbri,
-			},
-		))
-	}
+#[derive(Debug, Parse)]
+pub enum Sentences3 {
+	Single(Sentence),
+	Grouped(
+		Option<TagWords>,
+		WithFree<Tuhe>,
+		#[cut] Paragraphs,
+		Option<Tuhu>,
+		Frees,
+	),
 }
 
 #[derive(Debug, Parse)]
+pub struct ParagraphSeparator(
+	#[parse(with = "super::many1(Parse::parse)")] Box<[Niho]>,
+	Frees,
+);
+
+#[derive(Debug, Parse)]
+pub struct SentenceSeparator(pub I, pub Frees);
+
+#[derive(Debug, Parse)]
+pub struct ConnectedSentenceSeparator(pub I, pub JoikJek, pub Frees);
+
+#[derive(Debug, Parse)]
+pub struct CloseSentenceSeparator(
+	pub I,
+	pub Option<JoikJek>,
+	pub Option<TagWords>,
+	pub Bo,
+	pub Frees,
+);
+
+#[derive(Debug, Parse)]
+pub struct Sentence {
+	pub before_args: Args,
+	pub tail: Option<SentenceTail>,
+	pub vau: Option<Vau>,
+	pub frees: Frees,
+}
+
+#[derive(Debug, Parse)]
+pub struct SentenceTail(pub Option<Cu>, pub Frees, pub SentenceTail1);
+
+#[derive(Debug, Parse)]
+pub struct SentenceTail1(pub Separated<SentenceTail2, Gihek>, pub TailArgs);
+
+#[derive(Debug, Parse)]
+pub struct SentenceTail2(
+	pub Separated<SentenceTail3, (Gihek, Option<TagWords>, Bo)>,
+	pub TailArgs,
+);
+
+#[derive(Debug, Parse)]
+pub enum SentenceTail3 {
+	Single(Selbri, TailArgs),
+	Connected(GekSentence),
+}
+
+#[derive(Debug, Parse)]
+pub struct GekSentence(
+	pub Gek,
+	pub Subsentence,
+	pub Gik,
+	pub Subsentence,
+	pub TailArgs,
+);
+
+#[derive(Debug, Parse)]
+pub struct Subsentence(
+	#[parse(with = "super::many0(Parse::parse)")] pub Box<[Prenex]>,
+	Args,
+	SentenceTail,
+);
+
+#[derive(Debug, Parse)]
+pub struct Args(#[parse(with = "super::many0(Parse::parse)")] pub Box<[Arg]>);
+
+#[derive(Debug, Parse)]
+pub struct TailArgs(pub Args, pub Option<Vau>, pub Frees);
+
+#[derive(Debug, Parse)]
 pub struct Prenex {
-	#[parse(with = "super::many0(Parse::parse)")]
-	pub terms: Box<[Arg]>,
+	pub terms: Args,
 	pub zohu: Zohu,
 }
 
@@ -506,10 +561,7 @@ pub enum TanruUnit2 {
 		goha: Goha,
 		raho: Option<Raho>,
 	},
-	Moi(
-		#[parse(with = "super::many1(Parse::parse)")] Box<[NumberRest]>,
-		Moi,
-	),
+	Moi(MiscNumbers, Moi),
 	Me {
 		me: Me,
 		#[cut]
@@ -704,7 +756,7 @@ pub struct Sumti3ConnectedPre(pub Gek, pub Sumti, pub Gik);
 pub enum Sumti4 {
 	Normal {
 		quantifier: Option<Quantifier>,
-		inner: SumtiComponent,
+		inner: Box<SumtiComponent>,
 		relative_clauses: Option<RelativeClauses>,
 	},
 	SelbriShorthand {
@@ -746,11 +798,11 @@ pub struct MiscNumbers(#[parse(with = "super::many1(Parse::parse)")] Box<[Number
 
 #[derive(Debug, Parse)]
 pub enum LerfuWord {
-	By(By),
+	Lerfu(Lerfu),
 	Lau {
 		lau: Lau,
 		#[cut]
-		by: By,
+		lerfu: Lerfu,
 	},
 	Tei {
 		tei: Tei,
@@ -760,6 +812,23 @@ pub enum LerfuWord {
 		foi: Foi,
 	},
 }
+
+#[derive(Debug, Parse)]
+pub enum Lerfu {
+	By(By),
+	Bu(
+		Option<Bahe>,
+		BuLerfu,
+		#[parse(with = "super::many1(Parse::parse)")] Box<[Bu]>,
+		#[parse(with = "super::many0(Parse::parse)")] Box<[Indicators]>,
+	),
+}
+
+#[derive(Debug, Parse)]
+#[parse(
+	postcond = "|Self(token)| !matches!(token.selmaho, Selmaho::Bu | Selmaho::Zei | Selmaho::Si | Selmaho::Su | Selmaho::Sa | Selmaho::Faho)"
+)]
+pub struct BuLerfu(Token);
 
 #[derive(Debug, Parse)]
 pub enum SumtiComponent {
@@ -862,4 +931,57 @@ pub struct ZoiSumti {
 	pub starting_delimiter: Span,
 	pub text: Span,
 	pub ending_delimiter: Span,
+}
+
+#[derive(Debug, Parse)]
+pub enum Free {
+	Sei(WithFree<Sei>, Args, Option<Selbri>, Option<WithFree<Sehu>>),
+	Soi(WithFree<Soi>, Box<(Sumti, Option<Sumti>)>, Option<Sehu>),
+	Vocative(Vocative),
+	Mai(MiscNumbers, Mai),
+	To(To, #[cut] Text, Option<Toi>),
+	Xi(Subscript),
+}
+
+#[derive(Debug, Parse)]
+pub struct Vocative(pub VocativeWords, pub VocativeValue, pub Option<Dohu>);
+
+#[derive(Debug, Parse)]
+pub enum VocativeWords {
+	Coi(
+		#[parse(with = "super::many1(Parse::parse)")] Box<[(Coi, Option<Nai>)]>,
+		Option<Doi>,
+	),
+	Doi(Doi),
+}
+
+#[derive(Debug, Parse)]
+pub enum VocativeValue {
+	Selbri(Box<Selbri>),
+	Cmevla(#[parse(with = "super::many1(Parse::parse)")] Box<[Cmevla]>),
+	Sumti(Option<Box<Sumti>>),
+}
+
+#[derive(Debug, Parse)]
+pub struct Subscript(pub WithFree<Xi>, pub SubscriptValue);
+
+#[derive(Debug, Parse)] // similar to part of `mekso::Operand3`
+pub enum SubscriptValue {
+	Mekso(Vei, #[cut] Mekso, Option<Veho>),
+	Number(Number, #[parse(not = "Moi")] Option<Boi>),
+}
+
+#[derive(Debug, Parse)]
+pub struct Indicators(
+	pub Option<Fuhe>,
+	#[parse(with = "super::many1(Parse::parse)")] pub Box<[Indicator]>,
+);
+
+#[derive(Debug, Parse)]
+pub enum Indicator {
+	Ui(Ui),
+	Cai(Cai),
+	Nai(Nai),
+	Daho(Daho),
+	Fuho(Fuho),
 }

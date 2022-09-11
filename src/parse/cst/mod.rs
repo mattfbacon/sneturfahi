@@ -190,6 +190,7 @@ token_types! {
 	Cei,
 	Cmevla,
 	Co,
+	Giha,
 	Cu,
 	Cuhe,
 	Fa,

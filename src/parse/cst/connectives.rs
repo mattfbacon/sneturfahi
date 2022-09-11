@@ -1,4 +1,4 @@
-use super::{Bihi, Ga, Gaho, Gi, Guha, Ja, Joi, Na, Nai, Parse, Se, Tag, A};
+use super::{Bihi, Ga, Gaho, Gi, Giha, Guha, Ja, Joi, Na, Nai, Parse, Se, Tag, A};
 
 #[derive(Debug, Parse)]
 pub struct NaSeTNai<T> {
@@ -18,7 +18,7 @@ macro_rules! _ks {
 	}
 }
 
-_ks![Ek(A), Guhek(Guha), Jek(Ja)];
+_ks![Ek(A), Guhek(Guha), Jek(Ja), Gihek(Giha)];
 
 #[derive(Debug, Parse)]
 pub struct Interval(pub Option<Se>, pub Bihi, pub Option<Nai>);

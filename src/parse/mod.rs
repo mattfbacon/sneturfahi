@@ -1,5 +1,4 @@
-use nom::branch::alt;
-use nom::combinator::{all_consuming, cut, map, not, opt};
+use nom::combinator::{all_consuming, cut, map};
 use nom::sequence::tuple;
 use nom::Parser;
 
@@ -37,12 +36,6 @@ fn selmaho_raw<T: cst::SelmahoTypeRaw>(input: &[Token]) -> ParseResult<'_, T> {
 				error,
 			})
 		})
-}
-
-macro_rules! selmaho {
-	($name:ident) => {
-		cst::$name::parse
-	};
 }
 
 /// Whether to set `should_cut` is a bit of a tricky question.

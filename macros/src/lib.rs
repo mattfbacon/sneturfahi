@@ -316,38 +316,6 @@ impl FieldAttributes {
 	}
 }
 
-/*
-fn has_cut(attrs: &[Attribute]) -> bool {
-	attrs.iter().any(|attr| {
-		matches!(attr.style, AttrStyle::Outer)
-			&& attr.path.get_ident().map_or(false, |ident| ident == "cut")
-	})
-}
-
-fn find_with(attrs: &[Attribute]) -> Option<TokenStream> {
-	get_parse_attributes(attrs)
-		.rev()
-		.find_map(|attr| match attr {
-			ParseAttribute::With(tokens) => Some(tokens),
-			_ => None,
-		})
-}
-
-fn get_nots(attrs: &[Attribute]) -> impl Iterator<Item = TokenStream> + '_ {
-	get_parse_attributes(attrs).filter_map(|attr| match attr {
-		ParseAttribute::Not(attr) => Some(attr),
-		_ => None,
-	})
-}
-
-fn get_postconds(attrs: &[Attribute]) -> impl Iterator<Item = TokenStream> + '_ {
-	get_parse_attributes(attrs).filter_map(|attr| match attr {
-		ParseAttribute::PostCond(attr) => Some(attr),
-		_ => None,
-	})
-}
-*/
-
 struct PostCond {
 	cond_original: LitStr,
 	cond: TokenStream,

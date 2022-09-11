@@ -1,4 +1,17 @@
-const CLL_EXAMPLES: &'static [&'static str] = &[
+macro_rules! assert_parse {
+	($($sentence:expr),* $(,)?) => {
+		#[test]
+		fn assert_parse() {
+			$({
+				let sentence = $sentence;
+				eprintln!(".i caku jai cipra lodu'u gendra fa lu {sentence:?} li'u");
+				crate::parse(&crate::lex(sentence).collect::<Result<Vec<_>, _>>().expect("lexing failed")).expect("parsing failed");
+			})*
+		}
+	}
+}
+
+assert_parse![
 	// 5.1
 	"do mamta mi",
 	"do patfu mi",
@@ -157,12 +170,3 @@ const CLL_EXAMPLES: &'static [&'static str] = &[
 	"mi na na klama le zarci",
 	"mi na pu na ca klama le zarci",
 ];
-
-#[test]
-fn cll_examples() {
-	for example in CLL_EXAMPLES {
-		// this output won't show unless the test fails, in which case the last line will helpfully indicate which test failed
-		eprintln!("parsing {example:?}");
-		crate::parse(&crate::lex(example).collect::<Result<Vec<_>, _>>().unwrap()).unwrap();
-	}
-}

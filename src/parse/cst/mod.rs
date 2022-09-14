@@ -433,11 +433,12 @@ pub struct SentenceTail2(
 #[derive(Debug, Parse)]
 pub enum SentenceTail3 {
 	Single(Selbri, TailArgs),
-	Connected(GekSentence),
+	Connected(Box<GekSentence>),
 }
 
 #[derive(Debug, Parse)]
 pub struct GekSentence(
+	pub Option<WithFree<Na>>,
 	pub Gek,
 	pub Subsentence,
 	pub Gik,
@@ -462,13 +463,17 @@ pub struct TailArgs(pub Args, pub Option<Vau>, pub Frees);
 pub struct Prenex {
 	pub terms: Args,
 	pub zohu: Zohu,
+	pub frees: Frees,
 }
 
 #[derive(Debug, Parse)]
 pub enum Arg {
 	Tag(Tag),
-	Sumti { fa: Option<Fa>, sumti: Sumti },
-	Naku(Na, Ku),
+	Sumti {
+		fa: Option<WithFree<Fa>>,
+		sumti: Sumti,
+	},
+	Naku(Na, Ku, Frees),
 }
 
 #[derive(Debug, Parse)]
@@ -481,13 +486,13 @@ pub struct Selbri {
 
 #[derive(Debug, Parse)]
 pub enum SelbriBefore {
-	Na(Na),
+	Na(WithFree<Na>),
 	Tag(TagWords),
 }
 
 #[derive(Debug, Parse)]
 #[repr(transparent)]
-pub struct Selbri1(#[parse(with = "super::separated(true)")] Separated<Selbri2, Co>);
+pub struct Selbri1(Separated<Selbri2, WithFree<Co>>);
 
 #[derive(Debug, Parse)]
 #[repr(transparent)]
@@ -502,10 +507,17 @@ pub struct Selbri3(
 #[derive(Debug, Parse)]
 pub enum Selbri3ConnectedPost {
 	Normal(JoikJek, Selbri4),
-	Parenthesized(Joik, Option<TagWords>, Ke, Selbri2, Option<Kehe>),
+	Parenthesized(
+		Joik,
+		Option<TagWords>,
+		WithFree<Ke>,
+		Selbri2,
+		Option<Kehe>,
+		Frees,
+	),
 }
 
-pub type Selbri4 = Separated<Selbri5, (JoikJek, Option<TagWords>, Bo)>;
+pub type Selbri4 = Separated<Selbri5, (JoikJek, Option<TagWords>, Bo, Frees)>;
 
 #[derive(Debug, Parse)]
 pub struct Selbri5(
@@ -514,14 +526,14 @@ pub struct Selbri5(
 );
 
 #[derive(Debug, Parse)]
-pub struct NaheGuhekTGik<T>(pub Option<Nahe>, Guhek, T, Gik);
+pub struct NaheGuhekTGik<T>(pub Option<Nahe>, pub Frees, pub Guhek, pub T, pub Gik);
 
 #[derive(Debug, Parse)]
-pub struct Selbri6(Separated<TanruUnit, Bo>);
+pub struct Selbri6(pub Separated<TanruUnit, WithFree<Bo>>);
 
 #[derive(Debug, Parse)]
 #[repr(transparent)]
-pub struct TanruUnit(#[parse(with = "super::separated(true)")] Separated<TanruUnit1, Cei>);
+pub struct TanruUnit(pub Separated<TanruUnit1, WithFree<Cei>>);
 
 #[derive(Debug, Parse)]
 pub struct TanruUnit1 {
@@ -533,50 +545,57 @@ pub struct TanruUnit1 {
 
 #[derive(Debug, Parse)]
 pub enum BeforeTanruUnit {
-	Jai { jai: Jai, tag: Option<TagWords> },
-	Nahe(Nahe),
-	Se(Se),
+	Jai {
+		jai: WithFree<Jai>,
+		tag: Option<TagWords>,
+	},
+	Nahe(WithFree<Nahe>),
+	Se(WithFree<Se>),
 }
 
 #[derive(Debug, Parse)]
 pub struct BoundArguments {
-	pub be: Be,
-	#[parse(with = "super::separated(true)")]
-	pub args: Separated<Arg, Bei>,
+	pub be: WithFree<Be>,
+	pub args: Separated<Arg, WithFree<Bei>>,
 	pub beho: Option<Beho>,
+	pub frees: Frees,
 }
 
 #[derive(Debug, Parse)]
 pub enum TanruUnit2 {
 	GroupedTanru {
-		ke: Ke,
+		ke: WithFree<Ke>,
 		#[cut]
 		group: Selbri2, /* not `Selbri` because ke-ke'e groupings can't encompass co (CLL 5.8) nor tense, modal, and negation cmavo (CLL 5.13). `Selbri2` is inside co groupings (`Selbri1`) and na/tags (`Selbri`). */
 		kehe: Option<Kehe>,
+		frees: Frees,
 	},
-	Gismu(Gismu),
-	Lujvo(Lujvo),
-	Fuhivla(Fuhivla),
+	Gismu(WithFree<Gismu>),
+	Lujvo(WithFree<Lujvo>),
+	Fuhivla(WithFree<Fuhivla>),
 	Goha {
 		goha: Goha,
 		raho: Option<Raho>,
+		frees: Frees,
 	},
-	Moi(MiscNumbers, Moi),
+	Moi(MiscNumbers, Moi, Frees),
 	Me {
-		me: Me,
+		me: WithFree<Me>,
 		#[cut]
 		inner: Sumti,
 		mehu: Option<Mehu>,
+		frees: Frees,
+		moi: Option<WithFree<Moi>>,
 	},
 	Nu {
-		#[parse(with = "super::separated(true)")]
-		nus: Separated<(Nu, Option<Nai>), JoikJek>,
+		nus: Separated<(Nu, Option<Nai>, Frees), JoikJek>,
 		#[cut]
-		inner: Sentence,
+		inner: Box<Sentence>,
 		kei: Option<Kei>,
+		frees: Frees,
 	},
 	Nuha {
-		nuha: Nuha,
+		nuha: WithFree<Nuha>,
 		#[cut]
 		operator: MeksoOperator,
 	},
@@ -590,7 +609,7 @@ pub struct Tag {
 
 #[derive(Debug, Parse)]
 pub enum TagValue {
-	Ku(Ku),
+	Ku(WithFree<Ku>),
 	Sumti(Sumti),
 }
 
@@ -604,16 +623,18 @@ pub enum TagWord {
 		bai: Bai,
 		nai: Option<Nai>,
 		ki: Option<Ki>,
+		frees: Frees,
 	},
 	TimeSpaceCaha {
 		nahe: Option<Nahe>,
 		#[parse(with = "super::many1(Parse::parse)")]
 		inner: Box<[TimeSpaceCaha]>,
 		ki: Option<Ki>,
+		frees: Frees,
 	},
-	Ki(Ki),
-	Cuhe(Cuhe),
-	Converted(Fiho, #[cut] Selbri, Option<Fehu>),
+	Ki(Ki, Frees),
+	Cuhe(Cuhe, Frees),
+	Converted(WithFree<Fiho>, #[cut] Selbri, Option<Fehu>, Free),
 }
 
 #[derive(Debug, Parse)]
@@ -706,21 +727,26 @@ pub struct Sumti1(
 #[derive(Debug, Parse)]
 pub enum SumtiLikeConnectedPost<T> {
 	Normal(JoikEk, T),
-	Grouped(JoikEk, Option<TagWords>, Ke, T, Option<Kehe>),
+	Grouped(
+		JoikEk,
+		Option<TagWords>,
+		WithFree<Ke>,
+		T,
+		Option<Kehe>,
+		Frees,
+	),
 }
 
-pub type Sumti2 = Separated<Sumti3, (JoikEk, Option<TagWords>, Bo)>;
+pub type Sumti2 = Separated<Sumti3, (JoikEk, Option<TagWords>, Bo, Frees)>;
 
 #[derive(Debug, Parse)]
 pub struct VuhoRelative {
-	pub vuho: Vuho,
+	pub vuho: WithFree<Vuho>,
 	pub relative_clauses: RelativeClauses,
 }
 
 #[derive(Debug, Parse)]
-pub struct RelativeClauses(
-	#[parse(with = "super::separated(true)")] Separated<RelativeClause, Zihe>,
-);
+pub struct RelativeClauses(Separated<RelativeClause, WithFree<Zihe>>);
 
 #[derive(Debug, Parse)]
 pub enum RelativeClause {
@@ -730,17 +756,19 @@ pub enum RelativeClause {
 
 #[derive(Debug, Parse)]
 pub struct GoiRelativeClause {
-	pub goi: Goi,
+	pub goi: WithFree<Goi>,
 	/// typical usage would match Arg::Sumti, but Arg::Tag is possible as well, such as in `la salis nesemau la betis cu se prami mi`
 	pub inner: Arg,
 	pub gehu: Option<Gehu>,
+	pub frees: Frees,
 }
 
 #[derive(Debug, Parse)]
 pub struct NoiRelativeClause {
-	pub noi: Noi,
-	pub sentence: Sentence,
+	pub noi: WithFree<Noi>,
+	pub inner: Box<Subsentence>,
 	pub kuho: Option<Kuho>,
+	pub frees: Frees,
 }
 
 #[derive(Debug, Parse)]
@@ -763,14 +791,15 @@ pub enum Sumti4 {
 		quantifier: Quantifier,
 		inner: Selbri,
 		ku: Option<Ku>,
+		frees: Frees,
 		relative_clauses: Option<RelativeClauses>,
 	},
 }
 
 #[derive(Debug, Parse)] // similar to part of `mekso::Operand3`
 pub enum Quantifier {
-	Mekso(Vei, #[cut] Mekso, Option<Veho>),
-	Number(Number, #[parse(not = "Moi")] Option<Boi>),
+	Mekso(WithFree<Vei>, Mekso, Option<Veho>, Frees),
+	Number(Number, #[parse(not = "Moi")] Option<Boi>, Frees),
 }
 
 #[derive(Debug, Parse)]
@@ -830,8 +859,10 @@ pub enum Lerfu {
 )]
 pub struct BuLerfu(Token);
 
+pub type SumtiComponent = WithFree<SumtiComponent1>;
+
 #[derive(Debug, Parse)]
-pub enum SumtiComponent {
+pub enum SumtiComponent1 {
 	Koha(Koha),
 	// it is important that this is checked before `la_sumti` because `la_sumti` `cut`s on `cmevla`
 	Gadri(GadriSumti),
@@ -842,7 +873,7 @@ pub enum SumtiComponent {
 	LerfuString(LerfuString, Option<Boi>),
 	Zo(ZoSumti),
 	Zoi(ZoiSumti),
-	Li(Li, #[cut] Mekso, Option<Loho>),
+	Li(WithFree<Li>, Mekso, Option<Loho>),
 }
 
 #[derive(Debug)]
@@ -878,7 +909,7 @@ pub struct LuSumti {
 
 #[derive(Debug, Parse)]
 pub struct ModifiedSumti {
-	pub modifier: SumtiModifier,
+	pub modifier: WithFree<SumtiModifier>,
 	pub relative_clauses: Option<RelativeClauses>,
 	pub sumti: Sumti,
 	pub luhu: Option<Luhu>,
@@ -892,7 +923,7 @@ pub enum SumtiModifier {
 
 #[derive(Debug, Parse)]
 pub struct GadriSumti {
-	pub gadri: Gadri,
+	pub gadri: WithFree<Gadri>,
 	pub pe_shorthand: Option<Box<SumtiComponent>>, // recursion avoided here
 	pub relative_clauses: Option<RelativeClauses>,
 	pub inner: GadriSumtiInner,

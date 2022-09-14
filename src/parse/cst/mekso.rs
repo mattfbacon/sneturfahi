@@ -1,13 +1,13 @@
 use super::{
-	Bihe, Bo, Boi, Fuha, Gek, Gik, Johi, JoikEk, JoikJek, Ke, Kehe, Kuhe, Luhu, Maho, Mekso,
+	Bihe, Bo, Boi, Frees, Fuha, Gek, Gik, Johi, JoikEk, JoikJek, Ke, Kehe, Kuhe, Luhu, Maho, Mekso,
 	MiscNumbers, Mohe, Moi, Nahe, NaheGuhekTGik, Nahu, Nihe, Parse, Peho, Se, Selbri, Separated,
-	Sumti, SumtiLikeConnectedPost, SumtiModifier, TagWords, Tehu, Veho, Vei, Vuhu,
+	Sumti, SumtiLikeConnectedPost, SumtiModifier, TagWords, Tehu, Veho, Vei, Vuhu, WithFree,
 };
 
 #[derive(Debug, Parse)]
 pub enum Expression {
-	ReversePolish(Fuha, #[cut] ReversePolish),
-	Normal(Separated<Separated<Expression1, (Bihe, Operator)>, Operator>),
+	ReversePolish(WithFree<Fuha>, ReversePolish),
+	Normal(Separated<Separated<Expression1, (WithFree<Bihe>, Operator)>, Operator>),
 }
 
 #[derive(Debug, Parse)]
@@ -21,11 +21,12 @@ pub enum Expression1 {
 
 #[derive(Debug, Parse)]
 pub struct ForethoughtExpression {
-	pub peho: Option<Peho>,
+	pub peho: Option<WithFree<Peho>>,
 	pub operator: Operator,
 	#[parse(with = "super::super::many1(Parse::parse)")]
 	pub operands: Box<[Expression1]>,
 	pub kuhe: Option<Kuhe>,
+	pub frees: Frees,
 }
 
 #[derive(Debug, Parse)]
@@ -37,7 +38,7 @@ pub struct Operand(
 pub type ConnectedOperand = SumtiLikeConnectedPost<Operand>;
 
 #[derive(Debug, Parse)]
-pub struct Operand1(pub Separated<Operand2, (JoikEk, Option<TagWords>, Bo)>);
+pub struct Operand1(pub Separated<Operand2, (JoikEk, Option<TagWords>, WithFree<Bo>)>);
 
 #[derive(Debug, Parse)]
 pub struct Operand2(
@@ -50,18 +51,19 @@ pub struct Operand2ConnectedPre(pub Gek, pub Operand, pub Gik);
 
 #[derive(Debug, Parse)]
 pub enum Operand3 {
-	Nihe(Nihe, #[cut] Selbri, Option<Tehu>),
-	Mohe(Mohe, #[cut] Sumti, Option<Tehu>),
+	Nihe(WithFree<Nihe>, #[cut] Selbri, Option<Tehu>, Frees),
+	Mohe(WithFree<Mohe>, #[cut] Sumti, Option<Tehu>, Frees),
 	Johi(
-		Johi,
+		WithFree<Johi>,
 		#[cut]
 		#[parse(with = "super::super::many1(Parse::parse)")]
 		Box<[Expression1]>,
 		Option<Tehu>,
+		Frees,
 	),
 	Modified(OperandModifier, Operand, Option<Luhu>),
-	Parenthesized(Vei, #[cut] Mekso, Option<Veho>),
-	Number(MiscNumbers, #[parse(not = "Moi")] Option<Boi>),
+	Parenthesized(WithFree<Vei>, #[cut] Mekso, Option<Veho>, Frees),
+	Number(MiscNumbers, #[parse(not = "Moi")] Option<Boi>, Frees),
 }
 
 pub type OperandModifier = SumtiModifier;
@@ -81,12 +83,12 @@ pub struct Operator1(
 );
 
 #[derive(Debug, Parse)]
-pub struct Operator2(pub Separated<Operator3, (JoikJek, Option<TagWords>, Bo)>);
+pub struct Operator2(pub Separated<Operator3, (JoikJek, Option<TagWords>, WithFree<Bo>)>);
 
 #[derive(Debug, Parse)]
 pub enum Operator3 {
 	Simple(OperatorComponent),
-	Grouped(Ke, #[cut] Operator, Kehe),
+	Grouped(WithFree<Ke>, #[cut] Operator, Kehe, Frees),
 }
 
 #[derive(Debug, Parse)]
@@ -97,13 +99,13 @@ pub struct OperatorComponent(
 
 #[derive(Debug, Parse)]
 pub enum OperatorComponentPre {
-	Nahe(Nahe),
-	Se(Se),
+	Nahe(WithFree<Nahe>),
+	Se(WithFree<Se>),
 }
 
 #[derive(Debug, Parse)]
 pub enum OperatorComponent1 {
-	Maho(Maho, #[cut] Mekso, Option<Tehu>),
-	Nahu(Nahu, #[cut] Selbri, Option<Tehu>),
-	Vuhu(Vuhu),
+	Maho(WithFree<Maho>, #[cut] Mekso, Option<Tehu>, Frees),
+	Nahu(WithFree<Nahu>, #[cut] Selbri, Option<Tehu>, Frees),
+	Vuhu(WithFree<Vuhu>),
 }

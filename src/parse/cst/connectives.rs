@@ -1,4 +1,4 @@
-use super::{Bihi, Ga, Gaho, Gi, Giha, Guha, Ja, Joi, Na, Nai, Parse, Se, Tag, A};
+use super::{Bihi, Frees, Ga, Gaho, Gi, Giha, Guha, Ja, Joi, Na, Nai, Parse, Se, Tag, WithFree, A};
 
 #[derive(Debug, Parse)]
 pub struct NaSeTNai<T> {
@@ -18,7 +18,15 @@ macro_rules! _ks {
 	}
 }
 
-_ks![Ek(A), Guhek(Guha), Jek(Ja), Gihek(Giha)];
+_ks![Ek(A), Jek(Ja), Gihek(Giha)];
+
+#[derive(Debug, Parse)]
+pub struct Guhek {
+	pub se: Option<Se>,
+	pub word: Guha,
+	pub nai: Option<Nai>,
+	pub frees: Frees,
+}
 
 #[derive(Debug, Parse)]
 pub struct Interval(pub Option<Se>, pub Bihi, pub Option<Nai>);
@@ -31,23 +39,23 @@ pub enum Joik {
 }
 
 #[derive(Debug, Parse)]
-pub struct Gik(Gi, Option<Nai>);
+pub struct Gik(Gi, Option<Nai>, Frees);
 
 #[derive(Debug, Parse)]
 pub enum Gek {
-	SeGaNai(Option<Se>, Ga, Option<Nai>),
-	JoikGi(Joik, Gi),
+	SeGaNai(Option<Se>, Ga, Option<Nai>, Frees),
+	JoikGi(Joik, Gi, Frees),
 	TagGik(Tag, Gik),
 }
 
 #[derive(Debug, Parse)]
 pub enum JoikJek {
-	Joik(Joik),
-	Jek(Jek),
+	Joik(WithFree<Joik>),
+	Jek(WithFree<Jek>),
 }
 
 #[derive(Debug, Parse)]
 pub enum JoikEk {
-	Joik(Joik),
-	Ek(Ek),
+	Joik(WithFree<Joik>),
+	Ek(WithFree<Ek>),
 }

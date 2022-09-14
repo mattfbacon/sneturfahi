@@ -414,24 +414,48 @@ pub struct CloseSentenceSeparator(
 pub struct Sentence {
 	pub before_args: Args,
 	pub tail: Option<SentenceTail>,
-	pub vau: Option<Vau>,
-	pub frees: Frees,
 }
 
 #[derive(Debug, Parse)]
 pub struct SentenceTail(pub Option<Cu>, pub Frees, pub SentenceTail1);
 
 #[derive(Debug, Parse)]
-pub struct SentenceTail1(pub Separated<SentenceTail2, Gihek>, pub TailArgs);
+pub struct SentenceTail1(pub SentenceTail2, pub Option<SentenceTail1After>);
 
 #[derive(Debug, Parse)]
-pub struct SentenceTail2(
-	pub Separated<SentenceTail3, (Gihek, Option<TagWords>, Bo)>,
-	pub TailArgs,
+pub struct SentenceTail1After(
+	Gihek,
+	Option<TagWords>,
+	Ke,
+	Frees,
+	Box<SentenceTail1>,
+	Option<Kehe>,
+	Frees,
+	TailArgs,
 );
 
 #[derive(Debug, Parse)]
-pub enum SentenceTail3 {
+pub struct SentenceTail2(pub Box<SentenceTail3>, pub Option<SentenceTail2After>);
+
+#[derive(Debug, Parse)]
+pub struct SentenceTail2After(
+	#[parse(with = "super::many1(Parse::parse)")] Box<[(Gihek, Frees, SentenceTail3)]>,
+	TailArgs,
+);
+
+#[derive(Debug, Parse)]
+pub struct SentenceTail3(pub Box<SentenceTail4>, pub Option<SentenceTail3After>);
+
+pub type SentenceTail3Connective = (Gihek, Option<TagWords>, Bo, Frees);
+
+#[derive(Debug, Parse)]
+pub struct SentenceTail3After(
+	#[parse(with = "super::many1(Parse::parse)")] Box<[(SentenceTail3Connective, SentenceTail4)]>,
+	TailArgs,
+);
+
+#[derive(Debug, Parse)]
+pub enum SentenceTail4 {
 	Single(Selbri, TailArgs),
 	Connected(Box<GekSentence>),
 }

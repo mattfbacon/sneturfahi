@@ -652,7 +652,7 @@ pub enum TagWord {
 	},
 	Ki(Ki, Frees),
 	Cuhe(Cuhe, Frees),
-	Converted(WithFree<Fiho>, Selbri, Option<Fehu>, Free),
+	Converted(WithFree<Fiho>, Selbri, Option<Fehu>, Frees),
 }
 
 #[derive(Debug, Parse)]

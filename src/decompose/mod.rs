@@ -114,6 +114,18 @@ impl<'input> Decomposer<'input> {
 
 	#[must_use]
 	fn next_decomposing(&self, rest: &'input str) -> NextDecomposingResult<'input> {
+		if rest
+			.bytes()
+			.next()
+			.map_or(false, |first| first.is_ascii_digit())
+		{
+			let (digit, new_rest) = rest.split_at(1);
+			return NextDecomposingResult::Continue {
+				new_rest,
+				step_result: Span::from_embedded_slice(self.input_start, digit),
+			};
+		}
+
 		if let Some((cmavo, new_rest)) = rules::cmavo_minimal(rest) {
 			log::trace!("considering splitting into ({cmavo:?}, {new_rest:?}), pending post_word check");
 			if !new_rest.is_empty() && !new_rest.chars().all(|ch| ch == ',') && Self::post_word(new_rest)
@@ -439,5 +451,8 @@ mod test {
 		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
 		janbe: "tanjelavi" => ["tanjelavi"],
 		thrig: "mablabigerku" => ["ma", "blabigerku"],
+		numbers: "li123" => ["li", "1", "2", "3"],
+		numbers1: "li 123" => ["li", "1", "2", "3"],
+		numbers2: "123moi" => ["1", "2", "3", "moi"],
 	}
 }

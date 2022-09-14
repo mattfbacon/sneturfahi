@@ -493,5 +493,8 @@ mod test {
 		whitespace_rules5: "zoi gy   gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" "), ZoiDelimiter("gy")],
 		whitespace_rules6: "zoi gy. . . . .gy" => [Zoi("zoi"), ZoiDelimiter("gy"), AnyText(" . . . "), ZoiDelimiter("gy")],
 		srasu: include_str!("../srasu.txt") => include!("srasu.txt.expected"),
+		numbers: "li 123" => [Li("li"), Pa("1"), Pa("2"), Pa("3")],
+		numbers1: "li123" => [Li("li"), Pa("1"), Pa("2"), Pa("3")],
+		numbers2: "123moi" => [Pa("1"), Pa("2"), Pa("3"), Moi("moi")],
 	}
 }

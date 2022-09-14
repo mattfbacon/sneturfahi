@@ -235,7 +235,7 @@ impl Selmaho {
 				| "vai" | "gai" | "jau" | "dau" | "fi'u" | "ra'e" | "za'u" | "ki'o" | "me'i" | "ma'u"
 				| "ce'i" | "ni'u" | "pi" | "pi'e" | "rau" | "ro" | "xo" | "ji'i" | "da'a" | "du'e"
 				| "mo'a" | "so'a" | "so'e" | "so'i" | "so'o" | "so'u" | "su'o" | "te'o" | "tu'o"
-				| "ka'o" | "ci'i" | "no'o" | "pai" => Self::Pa,
+				| "ka'o" | "ci'i" | "no'o" | "pai" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0" => Self::Pa,
 				"kei'ei" | "lai'ai" | "xei" | "sei'a" | "si'ei" | "ro'oi" | "xo'e" | "ja'au" | "ku'i'a"
 				| "mei'a" | "no'ai" | "no'e'u" | "zau'u" | "ze'au" | "xe'e" | "so'au" | "su'oi"
 				| "su'ai" | "su'au" | "fai'e'au" | "fai'u" | "fai'u'a" | "pu'e'u'o" | "se'i'i"

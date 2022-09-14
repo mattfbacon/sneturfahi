@@ -359,9 +359,7 @@ pub struct Text {
 }
 
 #[derive(Debug, Parse)]
-pub struct Paragraphs(
-	#[parse(with = "super::separated(true)")] Separated<Paragraph, ParagraphSeparator>,
-);
+pub struct Paragraphs(Separated<Paragraph, ParagraphSeparator>);
 
 #[derive(Debug, Parse)]
 pub struct Paragraph {
@@ -383,7 +381,7 @@ pub enum Sentences3 {
 	Grouped(
 		Option<TagWords>,
 		WithFree<Tuhe>,
-		#[cut] Paragraphs,
+		Paragraphs,
 		Option<Tuhu>,
 		Frees,
 	),
@@ -589,7 +587,6 @@ pub struct BoundArguments {
 pub enum TanruUnit2 {
 	GroupedTanru {
 		ke: WithFree<Ke>,
-		#[cut]
 		group: Selbri2, /* not `Selbri` because ke-ke'e groupings can't encompass co (CLL 5.8) nor tense, modal, and negation cmavo (CLL 5.13). `Selbri2` is inside co groupings (`Selbri1`) and na/tags (`Selbri`). */
 		kehe: Option<Kehe>,
 		frees: Frees,
@@ -605,7 +602,6 @@ pub enum TanruUnit2 {
 	Moi(MiscNumbers, Moi, Frees),
 	Me {
 		me: WithFree<Me>,
-		#[cut]
 		inner: Sumti,
 		mehu: Option<Mehu>,
 		frees: Frees,
@@ -613,14 +609,12 @@ pub enum TanruUnit2 {
 	},
 	Nu {
 		nus: Separated<(Nu, Option<Nai>, Frees), JoikJek>,
-		#[cut]
 		inner: Box<Sentence>,
 		kei: Option<Kei>,
 		frees: Frees,
 	},
 	Nuha {
 		nuha: WithFree<Nuha>,
-		#[cut]
 		operator: MeksoOperator,
 	},
 }
@@ -658,7 +652,7 @@ pub enum TagWord {
 	},
 	Ki(Ki, Frees),
 	Cuhe(Cuhe, Frees),
-	Converted(WithFree<Fiho>, #[cut] Selbri, Option<Fehu>, Free),
+	Converted(WithFree<Fiho>, Selbri, Option<Fehu>, Free),
 }
 
 #[derive(Debug, Parse)]
@@ -727,12 +721,11 @@ pub enum SpaceInterval {
 }
 
 #[derive(Debug, Parse)]
-pub struct SpaceIntervalProperty(Fehe, #[cut] IntervalProperty);
+pub struct SpaceIntervalProperty(Fehe, IntervalProperty);
 
 #[derive(Debug, Parse)]
 pub struct SpaceMotion {
 	pub mohi: Mohi,
-	#[cut]
 	pub offset: SpaceOffset,
 }
 
@@ -854,12 +847,10 @@ pub enum LerfuWord {
 	Lerfu(Lerfu),
 	Lau {
 		lau: Lau,
-		#[cut]
 		lerfu: Lerfu,
 	},
 	Tei {
 		tei: Tei,
-		#[cut]
 		inner: Box<LerfuString>, // recursion avoided here
 		#[cut]
 		foi: Foi,
@@ -926,7 +917,6 @@ impl Parse for LohuSumti {
 #[derive(Debug, Parse)]
 pub struct LuSumti {
 	pub lu: Lu,
-	#[cut]
 	pub text: Text,
 	pub lihu: Option<Lihu>,
 }
@@ -963,13 +953,12 @@ pub enum Gadri {
 #[derive(Debug, Parse)]
 pub enum GadriSumtiInner {
 	Selbri(Option<Quantifier>, Selbri, Option<RelativeClauses>),
-	Sumti(Quantifier, #[cut] Sumti),
+	Sumti(Quantifier, Sumti),
 }
 
 #[derive(Debug, Parse)]
 pub struct LaSumti {
 	pub la: La,
-	#[cut]
 	#[parse(with = "super::many1(Parse::parse)")]
 	pub inner: Box<[Cmevla]>,
 }
@@ -994,7 +983,7 @@ pub enum Free {
 	Soi(WithFree<Soi>, Box<(Sumti, Option<Sumti>)>, Option<Sehu>),
 	Vocative(Vocative),
 	Mai(MiscNumbers, Mai),
-	To(To, #[cut] Text, Option<Toi>),
+	To(To, Text, Option<Toi>),
 	Xi(Subscript),
 }
 
@@ -1028,7 +1017,7 @@ pub struct Subscript(pub WithFree<Xi>, pub SubscriptValue);
 
 #[derive(Debug, Parse)] // similar to part of `mekso::Operand3`
 pub enum SubscriptValue {
-	Mekso(Vei, #[cut] Mekso, Option<Veho>),
+	Mekso(Vei, Mekso, Option<Veho>),
 	Number(Number, #[parse(not = "Moi")] Option<Boi>),
 }
 

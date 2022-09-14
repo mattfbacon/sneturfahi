@@ -51,18 +51,16 @@ pub struct Operand2ConnectedPre(pub Gek, pub Operand, pub Gik);
 
 #[derive(Debug, Parse)]
 pub enum Operand3 {
-	Nihe(WithFree<Nihe>, #[cut] Selbri, Option<Tehu>, Frees),
-	Mohe(WithFree<Mohe>, #[cut] Sumti, Option<Tehu>, Frees),
+	Nihe(WithFree<Nihe>, Selbri, Option<Tehu>, Frees),
+	Mohe(WithFree<Mohe>, Sumti, Option<Tehu>, Frees),
 	Johi(
 		WithFree<Johi>,
-		#[cut]
-		#[parse(with = "super::super::many1(Parse::parse)")]
-		Box<[Expression1]>,
+		#[parse(with = "super::super::many1(Parse::parse)")] Box<[Expression1]>,
 		Option<Tehu>,
 		Frees,
 	),
 	Modified(OperandModifier, Operand, Option<Luhu>),
-	Parenthesized(WithFree<Vei>, #[cut] Mekso, Option<Veho>, Frees),
+	Parenthesized(WithFree<Vei>, Mekso, Option<Veho>, Frees),
 	Number(MiscNumbers, #[parse(not = "Moi")] Option<Boi>, Frees),
 }
 
@@ -88,7 +86,7 @@ pub struct Operator2(pub Separated<Operator3, (JoikJek, Option<TagWords>, WithFr
 #[derive(Debug, Parse)]
 pub enum Operator3 {
 	Simple(OperatorComponent),
-	Grouped(WithFree<Ke>, #[cut] Operator, Kehe, Frees),
+	Grouped(WithFree<Ke>, Operator, Kehe, Frees),
 }
 
 #[derive(Debug, Parse)]
@@ -105,7 +103,7 @@ pub enum OperatorComponentPre {
 
 #[derive(Debug, Parse)]
 pub enum OperatorComponent1 {
-	Maho(WithFree<Maho>, #[cut] Mekso, Option<Tehu>, Frees),
-	Nahu(WithFree<Nahu>, #[cut] Selbri, Option<Tehu>, Frees),
+	Maho(WithFree<Maho>, Mekso, Option<Tehu>, Frees),
+	Nahu(WithFree<Nahu>, Selbri, Option<Tehu>, Frees),
 	Vuhu(WithFree<Vuhu>),
 }

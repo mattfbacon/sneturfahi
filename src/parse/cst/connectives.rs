@@ -35,7 +35,7 @@ pub struct Interval(pub Option<Se>, pub Bihi, pub Option<Nai>);
 pub enum Joik {
 	SeJoiNai(Option<Se>, Joi, Option<Nai>),
 	Interval(Interval),
-	Gaho(Gaho, #[cut] Interval, #[cut] Gaho),
+	Gaho(Gaho, Interval, #[cut] Gaho),
 }
 
 #[derive(Debug, Parse)]

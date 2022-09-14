@@ -305,7 +305,7 @@ fn glide(input: &str) -> ParseResult<'_> {
 }
 
 fn digit(input: &str) -> ParseResult<'_> {
-	one_of("023456789")(input).and_not(or![h, nucleus])
+	one_of("0123456789")(input).and_not(or![h, nucleus])
 }
 
 #[debug_rule]

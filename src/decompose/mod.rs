@@ -126,13 +126,17 @@ impl<'input> Decomposer<'input> {
 			};
 		}
 
-		if let Some((cmavo, new_rest)) = rules::cmavo_minimal(rest) {
-			log::trace!("considering splitting into ({cmavo:?}, {new_rest:?}), pending post_word check");
+		if let Some((fell_off, new_rest)) =
+			rules::cmavo_minimal(rest).or_else(|| rules::explicitly_stressed_brivla_minimal(rest))
+		{
+			log::trace!(
+				"considering splitting into ({fell_off:?}, {new_rest:?}), pending post_word check"
+			);
 			if !new_rest.is_empty() && !new_rest.chars().all(|ch| ch == ',') && Self::post_word(new_rest)
 			{
 				return NextDecomposingResult::Continue {
 					new_rest,
-					step_result: Span::from_embedded_slice(self.input_start, cmavo),
+					step_result: Span::from_embedded_slice(self.input_start, fell_off),
 				};
 			}
 		}
@@ -451,6 +455,12 @@ mod test {
 		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
 		janbe: "tanjelavi" => ["tanjelavi"],
 		thrig: "mablabigerku" => ["ma", "blabigerku"],
+		stress1_baseline: "lojboprenu" => ["lo", "jboprenu"],
+		stress1_1: "LOjboPREnu" => ["LOjbo", "PREnu"],
+		stress1_2: "lojboPREnu" => ["lo", "jboPREnu"],
+		stress2_baseline: "mipramido" => ["mi", "pramido"],
+		stress2_1: "miPRAmido" => ["mi", "PRAmi", "do"],
+		stress2_2: "MIpramido" => ["MIpra", "mi", "do"],
 		numbers: "li123" => ["li", "1", "2", "3"],
 		numbers1: "li 123" => ["li", "1", "2", "3"],
 		numbers2: "123moi" => ["1", "2", "3", "moi"],

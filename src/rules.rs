@@ -399,8 +399,12 @@ fn stress(input: &str) -> ParseResult<'_> {
 	seq![repeat(0, consonant), opt(h), opt(y), syllable, eof](input)
 }
 
+fn explicitly_stressed_vowel(input: &str) -> ParseResult<'_> {
+	seq![peek(stressed), vowel](input)
+}
+
 fn stressed_vowel(input: &str) -> ParseResult<'_> {
-	or![seq![peek(stressed), vowel], seq![vowel, peek(stress)]](input)
+	or![explicitly_stressed_vowel, seq![vowel, peek(stress)]](input)
 }
 
 fn final_syllable(input: &str) -> ParseResult<'_> {
@@ -605,11 +609,12 @@ fn fuhivla_head(input: &str) -> ParseResult<'_> {
 	brivla_head(input)
 }
 
+fn explicitly_stressed_syllable(input: &str) -> ParseResult<'_> {
+	seq![peek(stressed), syllable](input)
+}
+
 fn stressed_syllable(input: &str) -> ParseResult<'_> {
-	or![
-		seq![peek(stressed), syllable,],
-		seq![syllable, peek(stress),]
-	](input)
+	or![explicitly_stressed_syllable, seq![syllable, peek(stress)]](input)
 }
 
 #[debug_rule]
@@ -696,6 +701,134 @@ fn brivla_core(input: &str) -> ParseResult<'_> {
 		cvv_final_rafsi,
 		seq![stressed_initial_rafsi, short_final_rafsi]
 	](input)
+}
+
+#[debug_rule]
+pub fn explicitly_stressed_gismu_minimal(input: &str) -> ParseResult<'_> {
+	seq![
+		or![
+			seq![initial_pair, explicitly_stressed_vowel],
+			seq![consonant, explicitly_stressed_vowel, consonant],
+		],
+		peek(final_syllable),
+		consonant,
+		vowel,
+	](input)
+}
+
+fn final_syllable_minimal(input: &str) -> ParseResult<'_> {
+	seq![onset, not(y), not(stressed), nucleus](input)
+}
+
+#[debug_rule]
+pub fn explicitly_stressed_fuhivla_minimal(input: &str) -> ParseResult<'_> {
+	seq![
+		fuhivla_head,
+		explicitly_stressed_syllable,
+		repeat(0, consonantal_syllable),
+		final_syllable_minimal
+	](input)
+}
+
+fn explicitly_stressed_cvv_final_rafsi(input: &str) -> ParseResult<'_> {
+	seq![
+		consonant,
+		explicitly_stressed_vowel,
+		h,
+		peek(final_syllable),
+		vowel,
+		peek(post_word),
+	](input)
+}
+
+fn explicitly_stressed_brivla_rafsi(input: &str) -> ParseResult<'_> {
+	seq![
+		peek(unstressed_syllable),
+		brivla_head,
+		explicitly_stressed_syllable,
+		h,
+		y,
+	](input)
+}
+
+fn explicitly_stressed_fuhivla_rafsi(input: &str) -> ParseResult<'_> {
+	seq![fuhivla_head, explicitly_stressed_syllable, not(h), onset, y](input)
+}
+
+fn explicitly_stressed_extended_rafsi(input: &str) -> ParseResult<'_> {
+	or![
+		explicitly_stressed_brivla_rafsi,
+		explicitly_stressed_fuhivla_rafsi
+	](input)
+}
+
+fn explicitly_stressed_long_rafsi(input: &str) -> ParseResult<'_> {
+	or![
+		seq![initial_pair, explicitly_stressed_vowel, consonant],
+		seq![consonant, explicitly_stressed_vowel, consonant, consonant],
+	](input)
+}
+
+fn explicitly_stressed_cvc_rafsi(input: &str) -> ParseResult<'_> {
+	seq![consonant, explicitly_stressed_vowel, consonant](input)
+}
+
+fn explicitly_stressed_y_rafsi(input: &str) -> ParseResult<'_> {
+	seq![
+		or![
+			explicitly_stressed_long_rafsi,
+			explicitly_stressed_cvc_rafsi,
+		],
+		y
+	](input)
+}
+
+fn explicitly_stressed_ccv_rafsi(input: &str) -> ParseResult<'_> {
+	seq![initial_pair, explicitly_stressed_vowel](input)
+}
+
+fn explicitly_stressed_diphthong(input: &str) -> ParseResult<'_> {
+	seq![peek(stressed), diphthong](input)
+}
+
+fn explicitly_stressed_cvv_rafsi(input: &str) -> ParseResult<'_> {
+	seq![
+		consonant,
+		or![
+			seq![unstressed_vowel, h, explicitly_stressed_vowel],
+			explicitly_stressed_diphthong,
+		],
+		opt(r_hyphen)
+	](input)
+}
+
+fn explicitly_stressed_y_less_rafsi(input: &str) -> ParseResult<'_> {
+	or![
+		seq![explicitly_stressed_cvc_rafsi, not(y)],
+		explicitly_stressed_ccv_rafsi,
+		explicitly_stressed_cvv_rafsi,
+	](input)
+}
+
+fn explicitly_stressed_initial_rafsi(input: &str) -> ParseResult<'_> {
+	or![
+		explicitly_stressed_extended_rafsi,
+		explicitly_stressed_y_rafsi,
+		explicitly_stressed_y_less_rafsi
+	](input)
+}
+
+fn explicitly_stressed_brivla_core(input: &str) -> ParseResult<'_> {
+	or![
+		explicitly_stressed_fuhivla_minimal,
+		explicitly_stressed_gismu_minimal,
+		explicitly_stressed_cvv_final_rafsi,
+		seq![explicitly_stressed_initial_rafsi, short_final_rafsi]
+	](input)
+}
+
+pub fn explicitly_stressed_brivla_minimal(input: &str) -> ParseResult<'_> {
+	seq![repeat(0, initial_rafsi), explicitly_stressed_brivla_core](input)
 }
 
 #[debug_rule]

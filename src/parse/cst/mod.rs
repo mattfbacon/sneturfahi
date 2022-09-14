@@ -999,7 +999,13 @@ pub enum Free {
 }
 
 #[derive(Debug, Parse)]
-pub struct Vocative(pub VocativeWords, pub VocativeValue, pub Option<Dohu>);
+pub struct Vocative(
+	pub VocativeWords,
+	pub Option<RelativeClauses>,
+	pub VocativeValue,
+	pub Option<RelativeClauses>,
+	pub Option<Dohu>,
+);
 
 #[derive(Debug, Parse)]
 pub enum VocativeWords {

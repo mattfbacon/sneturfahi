@@ -1,4 +1,4 @@
-use nom::combinator::{all_consuming, cut, map};
+use nom::combinator::{all_consuming, map};
 use nom::sequence::tuple;
 use nom::Parser;
 
@@ -38,6 +38,7 @@ fn selmaho_raw<T: cst::SelmahoTypeRaw>(input: &[Token]) -> ParseResult<'_, T> {
 		})
 }
 
+/*
 /// Whether to set `should_cut` is a bit of a tricky question.
 /// It is complicated by the elision of elidable terminators.
 /// For example, `lo broda joi lo brode` is perfectly acceptable and implies a `KU` before `joi`.
@@ -62,6 +63,7 @@ fn separated<'a, Item: Parse, Separator: Parse>(
 		)(input)
 	}
 }
+*/
 
 /// Parse tokens into a concrete syntax tree.
 #[allow(clippy::missing_errors_doc)] // obvious

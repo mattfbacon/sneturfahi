@@ -51,7 +51,7 @@ fn parse() {
 			}
 		};
 		match sneturfahi::parse(&lexed) {
-			Ok(ast) => println!("AST: {ast:#?}"),
+			Ok(cst) => println!("CST: {cst:#?}"),
 			Err(error) => println!("Error: {error:?}"),
 		}
 	})

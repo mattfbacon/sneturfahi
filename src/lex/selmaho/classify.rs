@@ -69,7 +69,7 @@ impl Selmaho {
 				"a" | "e" | "ji" | "o" | "u" => Self::A,
 				"e'u'a" | "i'a'a" => experimental!(Self::A),
 				"ba'i" | "bai" | "bau" | "be'i" | "ca'i" | "cau" | "ci'e" | "ci'o" | "ci'u" | "cu'u"
-				| "de'i" | "di'o" | "du'i" | "du'o" | "fa'e" | "fi'e" | "ga'a" | "gau" | "ja'e"
+				| "de'i" | "di'o" | "do'e" | "du'i" | "du'o" | "fa'e" | "fi'e" | "ga'a" | "gau" | "ja'e"
 				| "ji'e" | "ji'o" | "ji'u" | "ka'a" | "ka'i" | "kai" | "ki'i" | "ki'u" | "koi" | "ku'u"
 				| "la'u" | "le'a" | "li'e" | "ma'e" | "ma'i" | "mau" | "me'a" | "me'e" | "mu'i"
 				| "mu'u" | "ni'i" | "pa'a" | "pa'u" | "pi'o" | "pu'a" | "pu'e" | "ra'a" | "ra'i"

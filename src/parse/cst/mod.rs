@@ -373,11 +373,10 @@ pub struct Sentences1(
 	#[parse(with = "super::many0(Parse::parse)")] pub Box<[Prenex]>,
 	pub Separated<Sentences2, ConnectedSentenceSeparator>,
 );
-pub type Sentences2 = Separated<Option<Sentences3>, CloseSentenceSeparator>;
+pub type Sentences2 = Separated<Sentences3, CloseSentenceSeparator>;
 
 #[derive(Debug, Parse)]
 pub enum Sentences3 {
-	Single(Sentence),
 	Grouped(
 		Option<TagWords>,
 		WithFree<Tuhe>,
@@ -385,6 +384,7 @@ pub enum Sentences3 {
 		Option<Tuhu>,
 		Frees,
 	),
+	Single(Sentence),
 }
 
 #[derive(Debug, Parse)]
@@ -436,9 +436,16 @@ pub struct SentenceTail1After(
 pub struct SentenceTail2(pub Box<SentenceTail3>, pub Option<SentenceTail2After>);
 
 #[derive(Debug, Parse)]
+pub struct SentenceTail2Connective(
+	pub Gihek,
+	// `gi'e ke ...` must be parsed as SentenceTail1After, not a parenthesized tanru
+	#[parse(not = "(Option<TagWords>, Ke)")] pub Frees,
+);
+
+#[derive(Debug, Parse)]
 pub struct SentenceTail2After(
-	#[parse(with = "super::many1(Parse::parse)")] Box<[(Gihek, Frees, SentenceTail3)]>,
-	TailArgs,
+	#[parse(with = "super::many1(Parse::parse)")] pub Box<[(SentenceTail2Connective, SentenceTail3)]>,
+	pub TailArgs,
 );
 
 #[derive(Debug, Parse)]
@@ -455,12 +462,20 @@ pub struct SentenceTail3After(
 #[derive(Debug, Parse)]
 pub enum SentenceTail4 {
 	Single(Selbri, TailArgs),
+	Parenthesized(
+		#[parse(with = "super::many0(Parse::parse)")] Box<[WithFree<Na>]>,
+		Option<TagWords>,
+		WithFree<Ke>,
+		Box<GekSentence>,
+		Option<Kehe>,
+		Frees,
+	),
 	Connected(Box<GekSentence>),
 }
 
 #[derive(Debug, Parse)]
 pub struct GekSentence(
-	pub Option<WithFree<Na>>,
+	#[parse(with = "super::many0(Parse::parse)")] pub Box<[WithFree<Na>]>,
 	pub Gek,
 	pub Subsentence,
 	pub Gik,
@@ -622,6 +637,8 @@ pub enum TanruUnit2 {
 #[derive(Debug, Parse)]
 pub struct Tag {
 	pub words: TagWords,
+	// e.g., "ri'agi broda gi brode" or "ri'agi ko'a gi ko'e". this rule would consume `ri'a` with no argument and leave just a `gi`.
+	#[parse(not = "Gik", not = "Ke")]
 	pub value: Option<TagValue>,
 }
 

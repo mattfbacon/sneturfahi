@@ -1,4 +1,6 @@
-use super::{Bihi, Frees, Ga, Gaho, Gi, Giha, Guha, Ja, Joi, Na, Nai, Parse, Se, Tag, WithFree, A};
+use super::{
+	Bihi, Frees, Ga, Gaho, Gi, Giha, Guha, Ja, Joi, Na, Nai, Parse, Se, TagWords, WithFree, A,
+};
 
 #[derive(Debug, Parse)]
 pub struct NaSeTNai<T> {
@@ -45,7 +47,7 @@ pub struct Gik(Gi, Option<Nai>, Frees);
 pub enum Gek {
 	SeGaNai(Option<Se>, Ga, Option<Nai>, Frees),
 	JoikGi(Joik, Gi, Frees),
-	TagGik(Tag, Gik),
+	TagGik(TagWords, Gik),
 }
 
 #[derive(Debug, Parse)]

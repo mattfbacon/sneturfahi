@@ -202,6 +202,7 @@ token_types! {
 	By,
 	Caha,
 	Cai,
+	Cehe,
 	Cei,
 	Cmevla,
 	Co,
@@ -274,7 +275,10 @@ token_types! {
 	Noi,
 	Nu,
 	Nuha,
+	Nuhi,
+	Nuhu,
 	Pa,
+	Pehe,
 	Peho,
 	Pu,
 	Raho,
@@ -503,14 +507,39 @@ pub struct Prenex {
 	pub frees: Frees,
 }
 
+pub type Arg = Separated<Arg1, PeheConnective>;
+
 #[derive(Debug, Parse)]
-pub enum Arg {
+pub struct PeheConnective(WithFree<Pehe>, JoikJek);
+
+pub type Arg1 = Separated<Arg2, WithFree<Cehe>>;
+
+#[derive(Debug, Parse)]
+pub enum Arg2 {
 	Tag(Tag),
 	Sumti {
 		fa: Option<WithFree<Fa>>,
 		sumti: Sumti,
 	},
 	Naku(Na, Ku, Frees),
+	Termset(Box<Termset>),
+}
+
+#[derive(Debug, Parse)]
+pub enum Termset {
+	Gek(Gek, Args, Gik, Args),
+	NuhiGi(
+		WithFree<Nuhi>,
+		Gek,
+		Args,
+		Option<Nuhu>,
+		Frees,
+		Gik,
+		Args,
+		Option<Nuhu>,
+		Frees,
+	),
+	Nuhi(WithFree<Nuhi>, Args, Option<Nuhu>, Frees),
 }
 
 #[derive(Debug, Parse)]

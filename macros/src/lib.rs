@@ -38,6 +38,27 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	derive_parse::derive_parse(input)
 }
 
+#[proc_macro]
+pub fn make_assert_parse_test(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+	let input = proc_macro2::TokenStream::from(input);
+	let span = syn::spanned::Spanned::span(&input);
+	let input = input.into();
+	let lit: syn::LitStr = parse_macro_input!(input);
+	let underscore_name = lit
+		.value()
+		.replace('\'', "h")
+		.replace(|ch: char| !ch.is_alphabetic(), "_");
+	let ident = quote::format_ident!("assert_parse__{underscore_name}");
+	quote::quote_spanned! {span=>
+		#[test]
+		fn #ident() {
+			let sentence = #lit;
+			eprintln!(".i caku jai cipra lodu'u gendra fa lu {:?} li'u", sentence);
+			crate::parse(&crate::lex(sentence).collect::<Result<Vec<_>, _>>().expect("lexing failed")).expect("parsing failed");
+		}
+	}.into()
+}
+
 #[proc_macro_attribute]
 pub fn debug_rule(
 	_attrs: proc_macro::TokenStream,

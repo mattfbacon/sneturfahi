@@ -1,14 +1,9 @@
 macro_rules! assert_parse {
-	($($sentence:expr),* $(,)?) => {
-		#[test]
-		fn assert_parse() {
-			$({
-				let sentence = $sentence;
-				eprintln!(".i caku jai cipra lodu'u gendra fa lu {sentence:?} li'u");
-				crate::parse(&crate::lex(sentence).collect::<Result<Vec<_>, _>>().expect("lexing failed")).expect("parsing failed");
-			})*
-		}
-	}
+	($($sentence:tt),* $(,)?) => {
+		$(
+			macros::make_assert_parse_test!($sentence);
+		)*
+	};
 }
 
 assert_parse![
@@ -40,7 +35,6 @@ assert_parse![
 	"ta cmalu bo nixli bo ckule",
 	// 5.5
 	"ta ke melbi cmalu ke'e nixli ckule",
-	"ta ke ke melbi cmalu ke'e nixli ke'e ckule",
 	"ta ke ke melbi cmalu ke'e nixli ke'e ckule",
 	"ta ke ke ke melbi cmalu ke'e nixli ke'e ckule ke'e",
 	"ta melbi ke cmalu nixli ke'e ckule",
@@ -139,7 +133,7 @@ assert_parse![
 	"le me le ci noltraitru me'u nunsalci",
 	"le me le ci noltraitru ku me'u nunsalci",
 	// 5.11
-	"mi prami do",
+	// duplicate: "mi prami do",
 	"do se prami mi",
 	"la alis cu cadzu klama le zarci",
 	"le zarci cu se ke cadzu klama ke'e la alis",
@@ -348,7 +342,7 @@ assert_parse![
 	"mi bajykla ti ta soi vo'e .i mi bajykla ti ta soi vo'e vo'i .i soi vo'e vo'i mi bajykla ti ta",
 	"mi bajykla ti soi vo'i se'u ta",
 	// 7.9
-	"do klama ma",
+	// duplicate: "do klama ma",
 	"do mo",
 	"ma cmene do",
 	"doi ma",
@@ -421,7 +415,7 @@ assert_parse![
 	// 8.5
 	"le gerku poi blabi cu klama",
 	"le gerku voi blabi cu klama",
-	"le nanmu cu ninmu",
+	// duplicate: "le nanmu cu ninmu",
 	"ti voi nanmu cu ninmu",
 	// 8.6
 	"le gerku poi blabi ku'o ku cu klama vau",

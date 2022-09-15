@@ -38,6 +38,7 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	derive_parse::derive_parse(input)
 }
 
+#[cfg(feature = "make-assert-parse-test")]
 #[proc_macro]
 pub fn make_assert_parse_test(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let input = proc_macro2::TokenStream::from(input);

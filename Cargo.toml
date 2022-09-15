@@ -11,6 +11,7 @@ thiserror = "1"
 
 [dev-dependencies]
 atty = "0.2"
+macros = { path = "macros", features = ["make-assert-parse-test"] }
 simplelog = "0.12"
 
 [features]

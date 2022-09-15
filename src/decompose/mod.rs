@@ -61,7 +61,7 @@ type Input<'input> = std::str::Split<'input, fn(char) -> bool>;
 #[derive(Debug, Clone, Copy)]
 enum State<'input> {
 	Normal,
-	Decomposing { rest: &'input str },
+	Decomposing { pre_commas: u32, rest: &'input str },
 }
 
 /// The iterator used for decomposition.
@@ -150,32 +150,56 @@ impl<'input> Decomposer<'input> {
 	}
 }
 
+impl Span {
+	fn expand_front(self, amount: u32) -> Self {
+		Self {
+			start: self.start - amount,
+			..self
+		}
+	}
+}
+
 impl<'input> Iterator for Decomposer<'input> {
 	type Item = Span;
 
 	fn next(&mut self) -> Option<Span> {
 		loop {
 			match self.state {
-				State::Normal => match {
-					let chunk = self.split.find(|chunk| !chunk.is_empty())?;
-					self.next_normal(chunk)
-				} {
-					NextNormalResult::YieldDirectly(span) => break Some(span),
-					NextNormalResult::NeedsDecomposition(chunk) => {
-						self.state = State::Decomposing { rest: chunk };
+				State::Normal => {
+					let (pre_commas, trimmed) = self.split.find_map(|chunk| {
+						let trimmed = chunk.trim_start_matches(',');
+						if trimmed.is_empty() {
+							None
+						} else {
+							Some((chunk.len() - trimmed.len(), trimmed))
+						}
+					})?;
+					let pre_commas = pre_commas.try_into().unwrap();
+					match self.next_normal(trimmed) {
+						NextNormalResult::YieldDirectly(span) => break Some(span.expand_front(pre_commas)),
+						NextNormalResult::NeedsDecomposition(chunk) => {
+							self.state = State::Decomposing {
+								pre_commas,
+								rest: chunk,
+							};
+						}
 					}
-				},
-				State::Decomposing { rest } => match self.next_decomposing(rest) {
+				}
+				State::Decomposing { pre_commas, rest } => match self.next_decomposing(rest) {
 					NextDecomposingResult::Continue {
 						new_rest,
 						step_result,
 					} => {
-						self.state = State::Decomposing { rest: new_rest };
-						break Some(step_result);
+						let trimmed = new_rest.trim_start_matches(',');
+						self.state = State::Decomposing {
+							pre_commas: (new_rest.len() - trimmed.len()).try_into().unwrap(),
+							rest: trimmed,
+						};
+						break Some(step_result.expand_front(pre_commas));
 					}
 					NextDecomposingResult::Break(step_result) => {
 						self.state = State::Normal;
-						break Some(step_result);
+						break Some(step_result.expand_front(pre_commas));
 					}
 					NextDecomposingResult::BreakWithNext => {
 						self.state = State::Normal;
@@ -237,13 +261,15 @@ impl<'input> Decomposer<'input> {
 	/// ```
 	pub fn next_no_decomposition(&mut self) -> Option<Span> {
 		match self.state {
-			State::Normal => self.split.next(),
-			State::Decomposing { rest } => {
+			State::Normal => self.split.next().map(|chunk| (0, chunk)),
+			State::Decomposing { pre_commas, rest } => {
 				self.state = State::Normal;
-				Some(rest)
+				Some((pre_commas, rest))
 			}
 		}
-		.map(|chunk| Span::from_embedded_slice(self.input_start, chunk))
+		.map(|(expand_front_by, chunk)| {
+			Span::from_embedded_slice(self.input_start, chunk).expand_front(expand_front_by)
+		})
 	}
 }
 

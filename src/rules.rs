@@ -356,6 +356,8 @@ fn stressed(input: &str) -> ParseResult<'_> {
 #[debug_rule]
 pub fn cmavo_form(input: &str) -> ParseResult<'_> {
 	or![
+		digit, // e.g., 1 will be treated like pa
+		repeat(1, y),
 		seq![
 			not(h),
 			not(cluster),
@@ -363,8 +365,6 @@ pub fn cmavo_form(input: &str) -> ParseResult<'_> {
 			repeat(0, seq![nucleus, h]),
 			or![seq![not(stressed), nucleus], seq![nucleus, not(cluster)]]
 		],
-		repeat(1, y),
-		digit, // e.g., 1 will be treated like pa
 	](input)
 }
 

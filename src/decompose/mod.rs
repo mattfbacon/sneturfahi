@@ -490,5 +490,8 @@ mod test {
 		numbers: "li123" => ["li", "1", "2", "3"],
 		numbers1: "li 123" => ["li", "1", "2", "3"],
 		numbers2: "123moi" => ["1", "2", "3", "moi"],
+		yyy: "yyy" => ["yyy"],
+		yyy2: "mi yyy broda" => ["mi", "yyy", "broda"],
+		yyy3: "mi yyybroda" => ["mi", "yyy", "broda"],
 	}
 }

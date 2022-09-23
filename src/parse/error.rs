@@ -36,6 +36,7 @@ pub enum Error {
 
 impl Error {
 	/// Convert this error to a [`WithLocation`] by providing a location.
+	#[must_use]
 	pub fn with_location(self, location: &[Token]) -> WithLocation<'_> {
 		WithLocation {
 			location,

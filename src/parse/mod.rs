@@ -82,6 +82,7 @@ impl Cst {
 			.map(|root| Self { root })
 	}
 
+	/// Get the root of the CST, which allows traversing the entire CST.
 	#[must_use]
 	pub fn root(&self) -> &cst::Root {
 		&self.root

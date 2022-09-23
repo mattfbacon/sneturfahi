@@ -578,15 +578,21 @@ pub struct Prenex {
 	pub frees: Frees,
 }
 
-pub type Arg = Separated<Arg1, PeheConnective>;
+#[derive(Debug, Parse)]
+pub struct Arg(
+	Arg1,
+	#[parse(with = "super::many0(Parse::parse)")] Box<[SumtiLikeConnectedPost<Arg1, Self>]>,
+);
+
+pub type Arg1 = Separated<Arg2, PeheConnective>;
 
 #[derive(Debug, Parse)]
 pub struct PeheConnective(WithFree<Pehe>, JoikJek);
 
-pub type Arg1 = Separated<Arg2, WithFree<Cehe>>;
+pub type Arg2 = Separated<Arg3, WithFree<Cehe>>;
 
 #[derive(Debug, Parse)]
-pub enum Arg2 {
+pub enum Arg3 {
 	Tag(Tag),
 	Sumti {
 		fa: Option<WithFree<Fa>>,

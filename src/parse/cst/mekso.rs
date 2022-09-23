@@ -43,7 +43,7 @@ pub struct Operand(
 	#[parse(with = "super::super::many0(Parse::parse)")] pub Box<[ConnectedOperand]>,
 );
 
-pub type ConnectedOperand = SumtiLikeConnectedPost<Operand>;
+pub type ConnectedOperand = SumtiLikeConnectedPost<Operand1, Operand>;
 
 #[derive(Debug, Parse)]
 pub struct Operand1(pub Separated<Operand2, (JoikEk, Option<TagWords>, WithFree<Bo>)>);

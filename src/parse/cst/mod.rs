@@ -647,14 +647,16 @@ pub struct Selbri3(
 	#[parse(with = "super::many0(Parse::parse)")] pub Box<[Selbri3ConnectedPost]>,
 );
 
+pub type Selbri3ConnectedPost = SelbriLikeConnectedPost<Selbri4, Selbri2>;
+
 #[derive(Debug, Parse)]
-pub enum Selbri3ConnectedPost {
-	Normal(JoikJek, Selbri4),
+pub enum SelbriLikeConnectedPost<Normal, Parenthesized> {
+	Normal(JoikJek, Normal),
 	Parenthesized(
 		Joik,
 		Option<TagWords>,
 		WithFree<Ke>,
-		Selbri2,
+		Parenthesized,
 		Option<Kehe>,
 		Frees,
 	),
@@ -861,17 +863,17 @@ pub struct Sumti {
 #[derive(Debug, Parse)]
 pub struct Sumti1(
 	pub Sumti2,
-	#[parse(with = "super::many0(Parse::parse)")] pub Box<[SumtiLikeConnectedPost<Sumti>]>,
+	#[parse(with = "super::many0(Parse::parse)")] pub Box<[SumtiLikeConnectedPost<Sumti2, Sumti>]>,
 );
 
 #[derive(Debug, Parse)]
-pub enum SumtiLikeConnectedPost<T> {
-	Normal(JoikEk, T),
+pub enum SumtiLikeConnectedPost<Normal, Parenthesized> {
+	Normal(JoikEk, Normal),
 	Grouped(
 		JoikEk,
 		Option<TagWords>,
 		WithFree<Ke>,
-		T,
+		Parenthesized,
 		Option<Kehe>,
 		Frees,
 	),

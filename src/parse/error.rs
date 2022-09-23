@@ -8,6 +8,7 @@ use crate::lex::{Selmaho, Token};
 
 /// Errors that can occur while parsing.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
 	/// The parser expected one of the selmaho in `expected`, but got the token in `got`.
 	#[error("expected token with one of the selmaho {expected:?}, got {got:?}")]

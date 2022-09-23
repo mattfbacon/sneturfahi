@@ -469,7 +469,7 @@ pub struct ParagraphSeparator(
 );
 
 #[derive(Debug, Parse)]
-pub struct SentenceSeparator(pub I, pub Frees);
+pub struct SentenceSeparator(pub I, #[parse(not = "Bu")] pub Frees);
 
 #[derive(Debug, Parse)]
 pub struct ConnectedSentenceSeparator(pub I, pub JoikJek, pub Frees);
@@ -976,13 +976,13 @@ pub enum LerfuWord {
 
 #[derive(Debug, Parse)]
 pub enum Lerfu {
-	By(By),
 	Bu(
 		Option<Bahe>,
 		BuLerfu,
 		#[parse(with = "super::many1(Parse::parse)")] Box<[Bu]>,
 		#[parse(with = "super::many0(Parse::parse)")] Box<[Indicators]>,
 	),
+	By(By),
 }
 
 #[derive(Debug, Parse)]
@@ -996,13 +996,12 @@ pub type SumtiComponent = WithFree<SumtiComponent1>;
 #[derive(Debug, Parse)]
 pub enum SumtiComponent1 {
 	Koha(Koha),
-	// it is important that this is checked before `la_sumti` because `la_sumti` `cut`s on `cmevla`
 	Gadri(GadriSumti),
 	La(LaSumti),
 	Lohu(LohuSumti),
 	Lu(LuSumti),
 	Modified(ModifiedSumti),
-	LerfuString(LerfuString, Option<Boi>),
+	LerfuString(LerfuString, #[parse(not = "Moi")] Option<Boi>),
 	Zo(ZoSumti),
 	Zoi(ZoiSumti),
 	Li(WithFree<Li>, Mekso, Option<Loho>),
@@ -1145,6 +1144,7 @@ pub struct Indicators(
 );
 
 #[derive(Debug, Parse)]
+#[parse(not_after = "Bu")]
 pub enum Indicator {
 	Ui(Ui),
 	Cai(Cai),

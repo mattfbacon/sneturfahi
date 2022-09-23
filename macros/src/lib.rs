@@ -39,23 +39,32 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[cfg(feature = "make-assert-parse-test")]
+fn make_hash(raw: &str) -> u64 {
+	use std::hash::{Hash as _, Hasher as _};
+	let mut hasher = std::collections::hash_map::DefaultHasher::new();
+	raw.hash(&mut hasher);
+	hasher.finish()
+}
+
+#[cfg(feature = "make-assert-parse-test")]
 #[proc_macro]
 pub fn make_assert_parse_test(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let input = proc_macro2::TokenStream::from(input);
 	let span = syn::spanned::Spanned::span(&input);
 	let input = input.into();
 	let lit: syn::LitStr = parse_macro_input!(input);
-	let underscore_name = lit
-		.value()
+	let value = lit.value();
+	let underscore_name = value[..std::cmp::min(value.len(), 20)]
 		.replace('\'', "h")
 		.replace(|ch: char| !ch.is_alphabetic(), "_");
-	let ident = quote::format_ident!("assert_parse__{underscore_name}");
+	let hash = make_hash(&value);
+	let ident = quote::format_ident!("assert_parse_{hash:016x}_{underscore_name}");
 	quote::quote_spanned! {span=>
 		#[test]
 		fn #ident() {
 			let sentence = #lit;
 			eprintln!(".i caku jai cipra lodu'u gendra fa lu {:?} li'u", sentence);
-			crate::parse(&crate::lex(sentence).collect::<Result<Vec<_>, _>>().expect("lexing failed")).expect("parsing failed");
+			crate::Cst::parse(&crate::lex(sentence).collect::<Result<Vec<_>, _>>().expect("lexing failed")).expect("parsing failed");
 		}
 	}.into()
 }

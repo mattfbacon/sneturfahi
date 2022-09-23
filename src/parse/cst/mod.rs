@@ -459,7 +459,7 @@ pub enum Sentences3 {
 		Option<Tuhu>,
 		Frees,
 	),
-	Single(Sentence),
+	Single(Box<Sentence>),
 }
 
 #[derive(Debug, Parse)]
@@ -783,7 +783,7 @@ pub enum TagWord {
 #[derive(Debug, Parse)]
 pub enum TimeSpaceCaha {
 	Time(Time),
-	Space(Space),
+	Space(Box<Space>),
 	Caha(Caha),
 }
 
@@ -1004,7 +1004,7 @@ pub type SumtiComponent = WithFree<SumtiComponent1>;
 #[derive(Debug, Parse)]
 pub enum SumtiComponent1 {
 	Koha(Koha),
-	Gadri(GadriSumti),
+	Gadri(Box<GadriSumti>),
 	La(LaSumti),
 	Lohu(LohuSumti),
 	Lu(LuSumti),

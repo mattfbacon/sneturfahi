@@ -1154,12 +1154,12 @@ pub enum VocativeValue {
 }
 
 #[derive(Debug, Parse)]
-pub struct Subscript(pub WithFree<Xi>, pub SubscriptValue);
+pub struct Subscript(pub WithFree<Xi>, pub WithFree<SubscriptValue>);
 
 #[derive(Debug, Parse)] // similar to part of `mekso::Operand3`
 pub enum SubscriptValue {
-	Mekso(Vei, Mekso, Option<Veho>),
-	Number(Number, #[parse(not = "Moi")] Option<Boi>),
+	Mekso(WithFree<Vei>, Mekso, Option<Veho>, Frees),
+	Number(MiscNumbers, #[parse(not = "Moi")] Option<Boi>, Frees),
 }
 
 #[derive(Debug, Parse)]

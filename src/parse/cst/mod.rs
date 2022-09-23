@@ -732,7 +732,7 @@ pub enum TanruUnit2 {
 	},
 	Nu {
 		nus: Separated<(Nu, Option<Nai>, Frees), JoikJek>,
-		inner: Box<Sentence>,
+		inner: Box<Subsentence>,
 		kei: Option<Kei>,
 		frees: Frees,
 	},

@@ -1062,9 +1062,8 @@ pub enum SumtiModifier {
 #[derive(Debug, Parse)]
 pub struct GadriSumti {
 	pub gadri: WithFree<Gadri>,
-	pub pe_shorthand: Option<Box<SumtiComponent>>, // recursion avoided here
-	pub relative_clauses: Option<RelativeClauses>,
-	pub inner: GadriSumtiInner,
+	pub pre: GadriSumtiPre,
+	pub contents: GadriSumtiContents,
 	pub ku: Option<Ku>,
 }
 
@@ -1075,7 +1074,22 @@ pub enum Gadri {
 }
 
 #[derive(Debug, Parse)]
-pub enum GadriSumtiInner {
+pub enum GadriSumtiPre {
+	// order is important here
+	Simple {
+		pe_shorthand: Option<Box<SumtiComponent>>, // recursion avoided here
+		relative_clauses: Option<RelativeClauses>,
+	},
+	Relative {
+		relative_clauses: RelativeClauses,
+	},
+	FullPre {
+		pe_shorthand: Box<Sumti>,
+	},
+}
+
+#[derive(Debug, Parse)]
+pub enum GadriSumtiContents {
 	Selbri(Option<Quantifier>, Selbri, Option<RelativeClauses>),
 	Sumti(Quantifier, Sumti),
 }

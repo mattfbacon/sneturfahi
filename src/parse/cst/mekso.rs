@@ -1,7 +1,8 @@
 use super::{
 	Bihe, Bo, Boi, Frees, Fuha, Gek, Gik, Johi, JoikEk, JoikJek, Ke, Kehe, Kuhe, Luhu, Maho, Mekso,
-	MiscNumbers, Mohe, Moi, Nahe, NaheGuhekTGik, Nahu, Nihe, Parse, Peho, Se, Selbri, Separated,
-	Sumti, SumtiLikeConnectedPost, SumtiModifier, TagWords, Tehu, Veho, Vei, Vuhu, WithFree,
+	MiscNumbers, Mohe, Moi, Nahe, NaheGuhekTGik, Nahu, Nihe, Parse, Peho, Se, Selbri,
+	SelbriLikeConnectedPost, Separated, Sumti, SumtiLikeConnectedPost, SumtiModifier, TagWords, Tehu,
+	Veho, Vei, Vuhu, WithFree,
 };
 
 #[derive(Debug, Parse)]
@@ -72,7 +73,7 @@ pub struct Operator(
 	#[parse(with = "super::super::many0(Parse::parse)")] pub Box<[ConnectedOperator]>,
 );
 
-pub type ConnectedOperator = SumtiLikeConnectedPost<Operator>;
+pub type ConnectedOperator = SelbriLikeConnectedPost<Operator1, Operator>;
 
 #[derive(Debug, Parse)]
 pub struct Operator1(

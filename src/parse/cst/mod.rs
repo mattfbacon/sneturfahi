@@ -1117,7 +1117,7 @@ pub struct ZoiSumti {
 
 #[derive(Debug, Parse)]
 pub enum Free {
-	Sei(WithFree<Sei>, Args, Option<Selbri>, Option<WithFree<Sehu>>),
+	Sei(WithFree<Sei>, Args, Option<SeiTail>, Option<WithFree<Sehu>>),
 	Soi(WithFree<Soi>, Box<(Sumti, Option<Sumti>)>, Option<Sehu>),
 	Vocative(Vocative),
 	Mai(MiscNumbers, Mai),
@@ -1133,6 +1133,9 @@ pub struct Vocative(
 	pub Option<RelativeClauses>,
 	pub Option<Dohu>,
 );
+
+#[derive(Debug, Parse)]
+pub struct SeiTail(pub Option<Cu>, pub Frees, pub Selbri);
 
 #[derive(Debug, Parse)]
 pub enum VocativeWords {

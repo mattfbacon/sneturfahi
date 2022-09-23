@@ -38,7 +38,7 @@ pub fn split_or_trim_condition(ch: char) -> bool {
 
 #[must_use]
 fn is_consonant(ch: char) -> bool {
-	"bcdfgjklmnprstvxz".contains(ch)
+	"bcdfgjklmnprstvxz".contains(ch.to_ascii_lowercase())
 }
 
 // while the input should never be empty, it may be only commas.

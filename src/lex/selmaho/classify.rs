@@ -242,9 +242,16 @@ impl Selmaho {
 				| "so'a" | "so'e" | "so'i" | "so'o" | "so'u" | "su'e" | "su'o" | "te'o" | "tu'o"
 				| "vai" | "vo" | "xa" | "xo" | "za'u" | "ze" | "1" | "2" | "3" | "4" | "5" | "6" | "7"
 				| "8" | "9" | "0" => Self::Pa,
-				"bi'ei" | "by'ai" | "ci'i'e" | "ci'i'o" | "ci'i'oi" | "dau'e" | "dy'ei" | "fy'ai"
-				| "kei'ei" | "mu'i'u" | "ny'ei" | "py'ai" | "ru'oi" | "sai'i" | "si'i'ai" | "soi'ai"
-				| "soi'au" | "su'o'o" | "sy'au" | "vu'ai" | "xe'a" | "xo'au" | "xy'au" | "zy'ei" => {
+				"bi'ei" | "by'ai" | "ci'i'e" | "ci'i'o" | "ci'i'oi" | "dau'e" | "dy'ei" | "fai'e'au"
+				| "fai'u" | "fai'u'a" | "fu'a'ai" | "fu'a'au" | "fy'ai" | "ga'au" | "gau'i'o"
+				| "go'o'i'a" | "ja'au" | "ka'ei'a" | "ka'o'ai" | "ka'o'ei" | "kai'o" | "kau'o"
+				| "kei'ei" | "kei'o" | "koi'o" | "ku'i'a" | "lai'ai" | "mai'e'e" | "mei'a" | "mu'i'ai"
+				| "mu'i'u" | "na'a'u" | "ni'e'ei" | "ni'e'oi" | "no'ai" | "no'e'u" | "ny'ei"
+				| "pa'au'o" | "pei'i'a" | "pi'au" | "pu'e'u'o" | "py'ai" | "ro'oi" | "ru'oi" | "sai'i"
+				| "se'i'i" | "sei'a" | "sei'u'e" | "si'ei" | "si'i'ai" | "so'au" | "soi'ai" | "soi'au"
+				| "su'ai" | "su'au" | "su'o'o" | "su'oi" | "sy'au" | "tau'u" | "va'ei'a" | "vau'au'o"
+				| "vo'ei'a" | "vu'ai" | "xe'a" | "xe'e" | "xei" | "xi'i'ei" | "xo'au" | "xo'e"
+				| "xy'au" | "zau'u" | "ze'au" | "zy'ei" | " vi'ei'e" => {
 					experimental!(Self::Pa)
 				}
 				"pe'e" => Self::Pehe,

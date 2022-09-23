@@ -417,10 +417,32 @@ pub struct Paragraphs(Separated<Paragraph, ParagraphSeparator>);
 #[derive(Debug, Parse)]
 pub struct Paragraph {
 	pub initial_sentence_separator: Option<SentenceSeparator>,
-	pub sentences: Sentences,
+	pub sentences: ParagraphItems,
 }
 
-pub type Sentences = Separated<Sentences1, SentenceSeparator>;
+pub type ParagraphItems = Separated<ParagraphItem, SentenceSeparator>;
+
+#[derive(Debug, Parse)]
+pub enum ParagraphItem {
+	#[parse(must_consume)]
+	Sentences(Sentences1),
+	Fragment(Box<Fragment>),
+	Empty(),
+}
+
+#[derive(Debug, Parse)]
+pub enum Fragment {
+	// answer to ek connective question
+	Ek(WithFree<JoikEk>),
+	// answer to gihek connective question
+	Gihek(WithFree<Gihek>),
+	// answer to number question
+	// this is Quantifier rather than something that accepts MiscNumber because a lerfu string that starts with a letteral can be parsed as a sumti instead
+	Number(Quantifier),
+	// answer to negation question?
+	Na(Na, #[parse(not = "Ja")] Frees),
+}
+
 #[derive(Debug, Parse)]
 pub struct Sentences1(
 	#[parse(with = "super::many0(Parse::parse)")] pub Box<[Prenex]>,

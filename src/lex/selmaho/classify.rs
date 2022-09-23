@@ -107,7 +107,7 @@ impl Selmaho {
 				"co" => Self::Co,
 				"co'ai'e" | "co'au'e" | "co'o'e" => experimental!(Self::Co),
 				"be'e" | "coi" | "co'o" | "fe'o" | "fi'i" | "je'e" | "ju'i" | "ke'o" | "ki'e" | "mi'e"
-				| "mu'o" | "nu'e" | "pe'u" | "re'i" | " ta'a" | "vi'o" => Self::Coi,
+				| "mu'o" | "nu'e" | "pe'u" | "re'i" | "ta'a" | "vi'o" => Self::Coi,
 				"a'oi" | "bu'oi" | "co'oi" | "de'a'ai" | "di'a'ai" | "di'ai" | "doi'oi" | "fau'u"
 				| "fe'oi" | "fi'i'e" | "ke'o'a" | "ke'o'o" | "ke'o'u" | "ku'au'i" | "ku'o'e'a" | "o'ai"
 				| "sau'ei" | "sau'e'u" | "sei'ai" | "sei'u" | "te'ei" | "ve'ei" | "xu'e" | "zau'e"

@@ -81,104 +81,152 @@ pub(super) trait SelmahoTypeRaw:
 
 macro_rules! token_types {
 	(@raw $name:ident) => {
-#[derive(Debug)]
-pub struct $name {
-	pub experimental: bool,
-	pub span: Span,
-}
-
-impl TryFrom<Token> for $name {
-	type Error = super::Error;
-
-	fn try_from(token: Token) -> Result<Self, super::Error> {
-		if token.selmaho == Selmaho::$name {
-			Ok(Self {
-				experimental: token.experimental,
-				span: token.span,
-			})
-		} else {
-			Err(super::Error::ExpectedGot {
-				expected: (&[Selmaho::$name] as &[Selmaho]).into(),
-				got: Some(token),
-			})
+		#[derive(Debug)]
+		pub struct $name {
+			pub experimental: bool,
+			pub span: Span,
 		}
-	}
-}
 
-impl TryFrom<Option<Token>> for $name {
-	type Error = super::Error;
+		impl TryFrom<Token> for $name {
+			type Error = super::Error;
 
-	fn try_from(token: Option<Token>) -> Result<Self, super::Error> {
-		token
-			.ok_or(super::Error::ExpectedGot {
-				expected: (&[Selmaho::$name] as &[Selmaho]).into(),
-				got: None,
-			})
-			.and_then(Self::try_from)
-	}
-}
-
-impl SelmahoTypeRaw for $name {}
-
-			impl Parse for $name {
-				fn parse<'a>(input: &'a [Token]) -> super::ParseResult<'a, Self> {
-					super::selmaho_raw::<$name>(input)
+			fn try_from(token: Token) -> Result<Self, super::Error> {
+				if token.selmaho == Selmaho::$name {
+					Ok(Self {
+						experimental: token.experimental,
+						span: token.span,
+					})
+				} else {
+					Err(super::Error::ExpectedGot {
+						expected: (&[Selmaho::$name] as &[Selmaho]).into(),
+						got: Some(token),
+					})
 				}
 			}
+		}
 
+		impl TryFrom<Option<Token>> for $name {
+			type Error = super::Error;
+
+			fn try_from(token: Option<Token>) -> Result<Self, super::Error> {
+				token
+					.ok_or(super::Error::ExpectedGot {
+						expected: (&[Selmaho::$name] as &[Selmaho]).into(),
+						got: None,
+					})
+					.and_then(Self::try_from)
+			}
+		}
+
+		impl SelmahoTypeRaw for $name {}
+
+		impl Parse for $name {
+			fn parse<'a>(input: &'a [Token]) -> super::ParseResult<'a, Self> {
+				super::selmaho_raw::<$name>(input)
+			}
+		}
+	};
+	(@no_indicators $name:ident) => {
+		#[derive(Debug)]
+		pub struct $name {
+			pub bahe: Box<[Bahe]>,
+			pub experimental: bool,
+			pub span: Span,
+		}
+
+		impl TryFrom<Token> for $name {
+			type Error = super::Error;
+
+			fn try_from(token: Token) -> Result<Self, super::Error> {
+				if token.selmaho == Selmaho::$name {
+					Ok(Self {
+						bahe: Box::new([]),
+						experimental: token.experimental,
+						span: token.span,
+					})
+				} else {
+					Err(super::Error::ExpectedGot {
+						expected: (&[Selmaho::$name] as &[Selmaho]).into(),
+						got: Some(token),
+					})
+				}
+			}
+		}
+
+		impl TryFrom<Option<Token>> for $name {
+			type Error = super::Error;
+
+			fn try_from(token: Option<Token>) -> Result<Self, super::Error> {
+				token.ok_or(super::Error::ExpectedGot { expected: (&[Selmaho::$name] as &[Selmaho]).into(), got: None }).and_then(Self::try_from)
+			}
+		}
+		impl SelmahoTypeRaw for $name {}
+
+		impl Parse for $name {
+			fn parse<'a>(input: &'a [Token]) -> super::ParseResult<'a, Self> {
+				let (input, bahe) = nom::Parser::parse(&mut super::many0(Bahe::parse), input)?;
+				let (input, mut matched) = super::selmaho_raw::<Self>(input)?;
+				matched.bahe = bahe;
+				Ok((input, matched))
+			}
+		}
 	};
 	(@single $name:ident) => {
-			#[derive(Debug)]
-			pub struct $name {
-				pub bahe: Box<[Bahe]>,
-				pub experimental: bool,
-				pub span: Span,
-				pub indicators: Box<[Indicators]>,
-			}
+		#[derive(Debug)]
+		pub struct $name {
+			pub bahe: Box<[Bahe]>,
+			pub experimental: bool,
+			pub span: Span,
+			pub indicators: Option<Box<Indicators>>,
+		}
 
-			impl TryFrom<Token> for $name {
-				type Error = super::Error;
+		impl TryFrom<Token> for $name {
+			type Error = super::Error;
 
-				fn try_from(token: Token) -> Result<Self, super::Error> {
-					if token.selmaho == Selmaho::$name {
-						Ok(Self {
-							bahe: Box::new([]),
-							experimental: token.experimental,
-							span: token.span,
-							indicators: Box::new([]),
-						})
-					} else {
-						Err(super::Error::ExpectedGot {
-							expected: (&[Selmaho::$name] as &[Selmaho]).into(),
-							got: Some(token),
-						})
-					}
+			fn try_from(token: Token) -> Result<Self, super::Error> {
+				if token.selmaho == Selmaho::$name {
+					Ok(Self {
+						bahe: Box::new([]),
+						experimental: token.experimental,
+						span: token.span,
+						indicators: None,
+					})
+				} else {
+					Err(super::Error::ExpectedGot {
+						expected: (&[Selmaho::$name] as &[Selmaho]).into(),
+						got: Some(token),
+					})
 				}
 			}
+		}
 
-			impl TryFrom<Option<Token>> for $name {
-				type Error = super::Error;
+		impl TryFrom<Option<Token>> for $name {
+			type Error = super::Error;
 
-				fn try_from(token: Option<Token>) -> Result<Self, super::Error> {
-					token.ok_or(super::Error::ExpectedGot { expected: (&[Selmaho::$name] as &[Selmaho]).into(), got: None }).and_then(Self::try_from)
-				}
+			fn try_from(token: Option<Token>) -> Result<Self, super::Error> {
+				token.ok_or(super::Error::ExpectedGot { expected: (&[Selmaho::$name] as &[Selmaho]).into(), got: None }).and_then(Self::try_from)
 			}
-			impl SelmahoTypeRaw for $name {}
+		}
+		impl SelmahoTypeRaw for $name {}
 
-			impl Parse for $name {
-				fn parse<'a>(input: &'a [Token]) -> super::ParseResult<'a, Self> {
-					let (input, bahe) = nom::Parser::parse(&mut super::many0(super::selmaho_raw::<Bahe>), input)?;
-					let (input, mut matched) = super::selmaho_raw::<Self>(input)?;
-					let (input, indicators) = super::many0(Indicators::parse).parse(input)?;
-					matched.bahe = bahe;
-					matched.indicators = indicators;
-					Ok((input, matched))
-				}
+		impl Parse for $name {
+			fn parse<'a>(input: &'a [Token]) -> super::ParseResult<'a, Self> {
+				let (input, bahe) = nom::Parser::parse(&mut super::many0(super::selmaho_raw::<Bahe>), input)?;
+				let (input, mut matched) = super::selmaho_raw::<Self>(input)?;
+				let (input, indicators) = <Option<Box<Indicators>>>::parse(input)?;
+				matched.bahe = bahe;
+				matched.indicators = indicators;
+				Ok((input, matched))
 			}
+		}
 	};
 	($(,)?) => {};
 	($(,)? $name:ident $($rest:tt)*) => {
 		token_types!(@single $name);
+		token_types!($($rest)*);
+	};
+	($(,)? #[no_indicators] $name:ident $($rest:tt)*) => {
+		token_types!(@no_indicators $name);
 		token_types!($($rest)*);
 	};
 	($(,)? #[raw] $name:ident $($rest:tt)*) => {
@@ -223,7 +271,7 @@ token_types! {
 	Fiho,
 	Foi,
 	Fuha,
-	Fuhe,
+	#[no_indicators] Fuhe,
 	Fuhivla,
 	Fuho,
 	Ga,

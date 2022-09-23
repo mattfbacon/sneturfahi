@@ -38,33 +38,6 @@ fn selmaho_raw<T: cst::SelmahoTypeRaw>(input: &[Token]) -> ParseResult<'_, T> {
 		})
 }
 
-/*
-/// Whether to set `should_cut` is a bit of a tricky question.
-/// It is complicated by the elision of elidable terminators.
-/// For example, `lo broda joi lo brode` is perfectly acceptable and implies a `KU` before `joi`.
-/// However, if `should_cut` was set to true, the failure to parse a selbri after the `joi` (since selbri can also be connected with `JOI`) would have caused a parse *failure* (not an error).
-/// Thus, in that situation `should_cut` must be false.
-fn separated<'a, Item: Parse, Separator: Parse>(
-	should_cut: bool,
-) -> impl Parser<&'a [Token], cst::Separated<Item, Separator>, error::WithLocation<'a>> + Clone {
-	move |input| {
-		map(
-			tuple((
-				<Box<Item>>::parse,
-				many0(tuple((Separator::parse, |input| {
-					if should_cut {
-						cut(Item::parse)(input)
-					} else {
-						Item::parse(input)
-					}
-				}))),
-			)),
-			|(first, rest)| cst::Separated { first, rest },
-		)(input)
-	}
-}
-*/
-
 #[derive(Debug)]
 pub struct Cst {
 	root: cst::Root,

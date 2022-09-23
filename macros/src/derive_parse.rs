@@ -19,10 +19,19 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 	let body = implement_parse(&input.data, &input.attrs, &name);
 
+	let assert_parse = quote_spanned! {Span::mixed_site()=>
+		fn assert_parse<T: Parse>() -> impl FnMut(&[crate::lex::Token]) -> crate::parse::ParseResult<'_, T> {
+			T::parse
+		}
+	};
+
 	quote! {
 		#[automatically_derived]
+		#[allow(unused_qualifications)]
 		impl #impl_generics Parse for #name #ty_generics #where_clause {
 			fn parse(input: &[crate::lex::Token]) -> crate::parse::ParseResult<'_, Self> {
+				#assert_parse
+
 				#body
 			}
 		}
@@ -72,16 +81,19 @@ fn implement_parse(data: &Data, attrs: &[Attribute], ident: &Ident) -> TokenStre
 				});
 
 				if attrs.longest {
+					let branches = branches.map(|branch| {
+						quote_spanned! {branch.span()=>
+							match (#branch)(input) {
+								ret @ Err(nom::Err::Failure(..)) => return ret,
+								Err(nom::Err::Error(error)) => Err(error),
+								Err(nom::Err::Incomplete(..)) => unreachable!("no streaming parsers used"),
+								Ok(parsed) => Ok(parsed),
+							}
+						}
+					});
 					quote! {
 						let results = [
-							#({
-								match (#branches)(input) {
-									ret @ Err(nom::Err::Failure(..)) => return ret,
-									Err(nom::Err::Error(error)) => Err(error),
-									Err(nom::Err::Incomplete(..)) => unreachable!("no streaming parsers used"),
-									Ok(parsed) => Ok(parsed),
-								}
-							},)*
+							#(#branches,)*
 						];
 						(if results.iter().all(|result| result.is_err()) {
 							Err(nom::Err::Error(results.into_iter().map(Result::unwrap_err).reduce(nom::error::ParseError::or).unwrap())) // we know there is at least one variant
@@ -123,7 +135,7 @@ fn implement_parse(data: &Data, attrs: &[Attribute], ident: &Ident) -> TokenStre
 					.as_ref()
 					.cloned()
 					.unwrap_or_else(|| LitStr::new(&cond_original.value(), Span::call_site()));
-				quote! {
+				quote_spanned! {cond_original.span()=>
 					if !((#cond) as fn(&Self) -> bool)(&value) {
 						return Err(
 							nom::Err::Error(
@@ -151,11 +163,14 @@ fn implement_parse(data: &Data, attrs: &[Attribute], ident: &Ident) -> TokenStre
 		inner
 	} else {
 		let after_nots = attrs.after_nots;
+		let after_nots = after_nots
+			.iter()
+			.map(|not| quote_spanned! {not.span() => nom::combinator::not(assert_parse::<#not>())});
 		quote! {
 			nom::combinator::map(
 				nom::sequence::tuple((
 					|input| { #inner },
-					#(nom::combinator::not(<#after_nots as Parse>::parse),)*
+					#(#after_nots,)*
 				)),
 				|(inner, ..)| inner
 			)(input)
@@ -185,10 +200,7 @@ fn implement_struct(
 				.unnamed
 				.iter()
 				.enumerate()
-				.map(|(idx, field)| {
-					let ident = format_ident!("field_{idx}");
-					quote_spanned!(field.span()=> #ident)
-				})
+				.map(|(idx, field)| format_ident!("field_{idx}", span = field.span()).into_token_stream())
 				.collect();
 			(elements, field_names, false)
 		}
@@ -205,7 +217,7 @@ fn implement_struct(
 			abort!(fields.span(), "an empty struct/variant will never consume");
 		}
 
-		quote!(Ok((input, #constructor{})))
+		quote_spanned!(constructor.span()=> Ok((input, #constructor{})))
 	} else {
 		let fields = if named {
 			quote!({ #(#field_names,)* })
@@ -228,8 +240,11 @@ fn implement_struct(
 }
 
 fn wrap_must_consume(name: &str, inner: TokenStream) -> TokenStream {
-	quote! {{
-		let result = (#inner);
+	let span = inner.span();
+	let mut inner = proc_macro2::Group::new(proc_macro2::Delimiter::None, inner);
+	inner.set_span(span);
+	quote_spanned! {span=> {
+		let result = #inner;
 		if result.as_ref().map_or(false, |(rest, parsed)| nom::InputLength::input_len(rest) == nom::InputLength::input_len(&input)) {
 			Err(nom::Err::Error(crate::parse::error::Error::Empty(#name).with_location(input)))
 		} else {
@@ -246,7 +261,7 @@ fn make_elements(i: &Punctuated<Field, Comma>) -> impl Iterator<Item = TokenStre
 
 		let inner = attrs
 			.with
-			.unwrap_or_else(|| quote_spanned!(ty_span=> <#ty as Parse>::parse));
+			.unwrap_or_else(|| quote_spanned!(ty_span=> assert_parse::<#ty>()));
 
 		let actual = if attrs.cut {
 			quote_spanned! {ty_span=> nom::combinator::cut(#inner) }
@@ -260,16 +275,16 @@ fn make_elements(i: &Punctuated<Field, Comma>) -> impl Iterator<Item = TokenStre
 			let idx = Index::from(nots.len());
 			let nots = nots
 				.iter()
-				.map(|not| quote_spanned!(not.span() => <#not as Parse>::parse));
+				.map(|not| quote_spanned!(not.span() => nom::combinator::not(assert_parse::<#not>())));
 			let after_nots = after_nots
 				.iter()
-				.map(|not| quote_spanned!(not.span() => <#not as Parse>::parse));
+				.map(|not| quote_spanned!(not.span() => nom::combinator:not(assert_parse::<#not>())));
 			quote! {
 				nom::combinator::map(
 					nom::sequence::tuple((
-						#(nom::combinator::not(#nots),)*
+						#(#nots,)*
 						#actual,
-						#(nom::combinator::not(#after_nots),)*
+						#(#after_nots,)*
 					)),
 					|tuple| tuple.#idx
 				)

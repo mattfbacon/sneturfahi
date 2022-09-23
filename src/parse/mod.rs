@@ -65,11 +65,25 @@ fn separated<'a, Item: Parse, Separator: Parse>(
 }
 */
 
-/// Parse tokens into a concrete syntax tree.
-#[allow(clippy::missing_errors_doc)] // obvious
-pub fn parse(input: &[Token]) -> Result<cst::Root, error::WithLocation<'_>> {
-	nom::Finish::finish(all_consuming(cst::Text::parse)(input)).map(|(rest, root)| {
-		debug_assert!(rest.is_empty());
-		root
-	})
+#[derive(Debug)]
+pub struct Cst {
+	root: cst::Root,
+}
+
+impl Cst {
+	/// Parse tokens into a concrete syntax tree.
+	#[allow(clippy::missing_errors_doc)] // obvious
+	pub fn parse(input: &[Token]) -> Result<Self, error::WithLocation<'_>> {
+		nom::Finish::finish(all_consuming(cst::Text::parse)(input))
+			.map(|(rest, root)| {
+				debug_assert!(rest.is_empty());
+				root
+			})
+			.map(|root| Self { root })
+	}
+
+	#[must_use]
+	pub fn root(&self) -> &cst::Root {
+		&self.root
+	}
 }

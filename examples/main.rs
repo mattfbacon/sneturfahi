@@ -50,8 +50,8 @@ fn parse() {
 				return;
 			}
 		};
-		match sneturfahi::parse(&lexed) {
-			Ok(cst) => println!("CST: {cst:#?}"),
+		match sneturfahi::Cst::parse(&lexed) {
+			Ok(cst) => println!("CST: {:#?}", cst.root()),
 			Err(error) => println!("Error: {error:?}"),
 		}
 	})

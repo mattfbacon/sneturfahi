@@ -38,7 +38,7 @@ pub mod lex;
 pub use lex::lex;
 
 pub mod parse;
-pub use parse::parse;
+pub use parse::Cst;
 
 pub mod span;
 pub use span::Span;

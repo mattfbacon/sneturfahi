@@ -28,6 +28,19 @@ pub enum Error {
 	/// This is similar to `ExpectedGot`, but zo accepts almost any selmaho to be quoted so `expected` would be unreasonably large.
 	#[error("expected body of zo quote, got EOF")]
 	ZoQuoteEof,
+	/// Sometimes we require rules to consume input to avoid them "succeeding" but really matching nothing.
+	#[error("{0} consumed no input but was expected to")]
+	Empty(&'static str),
+}
+
+impl Error {
+	/// Convert this error to a [`WithLocation`] by providing a location.
+	pub fn with_location(self, location: &[Token]) -> WithLocation<'_> {
+		WithLocation {
+			location,
+			error: self,
+		}
+	}
 }
 
 /// An error with an embedded location, indicating where the error occurred.

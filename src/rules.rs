@@ -84,7 +84,13 @@ macro_rules! or {
 			$(if let Some(ret) = $parsers(input) { return Some(ret); })+
 			return None;
 		}
-	}
+	};
+	(longest=> $($parsers:expr),+ $(,)?) => {
+		move |input| {
+			let results = [$($parsers(input),)+];
+			results.into_iter().filter_map(|result| result).min_by_key(|(_matched, rest)| rest.len())
+		}
+	};
 }
 
 fn opt(parser: impl_parse!()) -> impl_parse!() {
@@ -355,7 +361,7 @@ fn stressed(input: &str) -> ParseResult<'_> {
 
 #[debug_rule]
 pub fn cmavo_form(input: &str) -> ParseResult<'_> {
-	or![
+	or![longest=>
 		digit, // e.g., 1 will be treated like pa
 		repeat(1, y),
 		seq![
@@ -366,6 +372,11 @@ pub fn cmavo_form(input: &str) -> ParseResult<'_> {
 			or![seq![not(stressed), nucleus], seq![nucleus, not(cluster)]]
 		],
 	](input)
+}
+
+#[test]
+fn test_yhy_cmavo() {
+	assert_eq!(cmavo_form("y'y"), Some(("y'y", "")));
 }
 
 pub fn post_word(input: &str) -> ParseResult<'_> {

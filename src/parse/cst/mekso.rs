@@ -11,8 +11,15 @@ pub enum Expression {
 	Normal(Separated<Separated<Expression1, (WithFree<Bihe>, Operator)>, Operator>),
 }
 
+// this representation is quite clunky and does not match the semantic hierarchy of the RP expression, but that's a problem for the AST.
 #[derive(Debug, Parse)]
-pub struct ReversePolish;
+pub struct ReversePolish(
+	pub Operand,
+	#[parse(with = "super::super::many0(Parse::parse)")] pub Box<[RPTail]>,
+);
+
+#[derive(Debug, Parse)]
+pub struct RPTail(pub ReversePolish, pub Operator);
 
 #[derive(Debug, Parse)]
 pub enum Expression1 {

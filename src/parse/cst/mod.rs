@@ -350,6 +350,7 @@ token_types! {
 	Vuho,
 	Vuhu,
 	Xi,
+	Y,
 	Zaho,
 	Zeha,
 	Zi,
@@ -1128,4 +1129,5 @@ pub enum Indicator {
 	Nai(Nai),
 	Daho(Daho),
 	Fuho(Fuho),
+	Y(Y),
 }

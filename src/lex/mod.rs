@@ -124,7 +124,7 @@ pub enum Error {
 /// [Result]: std::result::Result
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 struct DelimitedQuoteState {
 	how_many: NonZeroU8,
 	initiator_span: Span,
@@ -148,6 +148,7 @@ impl DelimitedQuoteState {
 	}
 }
 
+#[derive(Debug, Clone, Copy)]
 enum State {
 	Normal,
 	DelimitedQuote(DelimitedQuoteState),
@@ -157,6 +158,7 @@ enum State {
 	Done,
 }
 
+#[derive(Debug, Clone)]
 struct Lexer<'input> {
 	words: crate::decompose::Decomposer<'input>,
 	input: &'input str,

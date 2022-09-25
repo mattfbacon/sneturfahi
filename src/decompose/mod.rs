@@ -67,7 +67,7 @@ enum State<'input> {
 /// The iterator used for decomposition.
 ///
 /// The public way to create an instance of this type is [`decompose`], and the documentation for decomposition in general is there.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Decomposer<'input> {
 	input_start: *const u8,
 	split: Input<'input>,

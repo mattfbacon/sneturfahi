@@ -7,7 +7,7 @@ fn main() {
 
 	let action = std::env::args().nth(1).expect("need action");
 	match action.as_str() {
-		"parse" => parse(),
+		"cst" => parse_cst(),
 		"lex" => lex(),
 		"decompose" => decompose(),
 		_ => panic!("unknown action"),
@@ -40,7 +40,7 @@ fn decompose() {
 	});
 }
 
-fn parse() {
+fn parse_cst() {
 	repl(|input| {
 		let lexed: Result<Vec<_>, _> = sneturfahi::lex(input).collect();
 		let lexed = match lexed {

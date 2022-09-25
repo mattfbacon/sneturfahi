@@ -10,6 +10,27 @@ use syn::{
 	GenericParam, Generics, Ident, Index, Lit, LitStr, Meta, MetaList, MetaNameValue, NestedMeta,
 };
 
+mod paths {
+	use proc_macro2::TokenStream;
+	use quote::quote;
+
+	pub(super) fn trait_() -> TokenStream {
+		quote!(crate::parse::cst::parse_trait::Parse)
+	}
+
+	pub(super) fn result() -> TokenStream {
+		quote!(crate::parse::cst::parse_trait::Result)
+	}
+
+	pub(super) fn error() -> TokenStream {
+		quote!(crate::parse::cst::error::Error)
+	}
+
+	pub(super) fn token() -> TokenStream {
+		quote!(crate::lex::Token)
+	}
+}
+
 pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let mut input = parse_macro_input!(input as DeriveInput);
 
@@ -19,8 +40,11 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 	let body = implement_parse(&input.data, &input.attrs, &name);
 
+	let trait_path = paths::trait_();
+	let result_path = paths::result();
+	let token_path = paths::token();
 	let assert_parse = quote_spanned! {Span::mixed_site()=>
-		fn assert_parse<T: Parse>() -> impl FnMut(&[crate::lex::Token]) -> crate::parse::ParseResult<'_, T> {
+		fn assert_parse<T: #trait_path>() -> impl FnMut(&[#token_path]) -> #result_path<'_, T> {
 			T::parse
 		}
 	};
@@ -28,8 +52,8 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	quote! {
 		#[automatically_derived]
 		#[allow(unused_qualifications)]
-		impl #impl_generics Parse for #name #ty_generics #where_clause {
-			fn parse(input: &[crate::lex::Token]) -> crate::parse::ParseResult<'_, Self> {
+		impl #impl_generics #trait_path for #name #ty_generics #where_clause {
+			fn parse(input: &[#token_path]) -> #result_path<'_, Self> {
 				#assert_parse
 
 				#body
@@ -40,9 +64,10 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 fn add_trait_bounds(generics: &mut Generics) {
+	let trait_path = paths::trait_();
 	for param in &mut generics.params {
 		if let GenericParam::Type(type_param) = param {
-			type_param.bounds.push(parse_quote!(Parse));
+			type_param.bounds.push(parse_quote!(#trait_path));
 		}
 	}
 }
@@ -50,8 +75,9 @@ fn add_trait_bounds(generics: &mut Generics) {
 fn implement_parse(data: &Data, attrs: &[Attribute], ident: &Ident) -> TokenStream {
 	let attrs = ContainerAttributes::get(attrs);
 
+	let trait_path = paths::trait_();
 	let inner = if let Some(with) = attrs.with {
-		quote_spanned!(with.span()=> nom::Parser::parse(&mut #with, input))
+		quote_spanned!(with.span()=> nom::Parser::parse(&mut (#with)(#trait_path::parse), input))
 	} else {
 		match data {
 			Data::Struct(data) => implement_struct(&data.fields, ident, attrs.must_consume, quote!(Self)),
@@ -125,30 +151,27 @@ fn implement_parse(data: &Data, attrs: &[Attribute], ident: &Ident) -> TokenStre
 	let inner = if attrs.post_conds.is_empty() {
 		inner
 	} else {
-		let check_post_conds = attrs.post_conds.iter().map(
-			|PostCond {
-			   cond_original,
-			   cond,
-			   reason,
-			 }| {
-				let reason = reason
-					.as_ref()
-					.cloned()
-					.unwrap_or_else(|| LitStr::new(&cond_original.value(), Span::call_site()));
-				quote_spanned! {cond_original.span()=>
-					if !((#cond) as fn(&Self) -> bool)(&value) {
-						return Err(
-							nom::Err::Error(
-								crate::parse::error::WithLocation {
-									location: input,
-									error: crate::parse::error::Error::PostConditionFailed(#reason),
-								}
-							)
-						);
-					}
+		let check_post_conds = attrs.post_conds.iter().map(|post_cond| {
+			let PostCond {
+				cond_original,
+				cond,
+				reason,
+			} = post_cond;
+			let reason = reason
+				.as_ref()
+				.cloned()
+				.unwrap_or_else(|| LitStr::new(&cond_original.value(), Span::call_site()));
+			let error = paths::error();
+			quote_spanned! {cond_original.span()=>
+				if !((#cond) as fn(&Self) -> bool)(&value) {
+					return Err(
+						nom::Err::Error(
+							#error::PostConditionFailed(#reason).with_location(input)
+						)
+					);
 				}
-			},
-		);
+			}
+		});
 
 		quote!({
 			let (rest, value): (_, Self) = #inner?;
@@ -241,12 +264,13 @@ fn implement_struct(
 
 fn wrap_must_consume(name: &str, inner: TokenStream) -> TokenStream {
 	let span = inner.span();
+	let error_path = paths::error();
 	let mut inner = proc_macro2::Group::new(proc_macro2::Delimiter::None, inner);
 	inner.set_span(span);
 	quote_spanned! {span=> {
 		let result = #inner;
 		if result.as_ref().map_or(false, |(rest, parsed)| nom::InputLength::input_len(rest) == nom::InputLength::input_len(&input)) {
-			Err(nom::Err::Error(crate::parse::error::Error::Empty(#name).with_location(input)))
+			Err(nom::Err::Error(#error_path::Empty(#name).with_location(input)))
 		} else {
 			result
 		}
@@ -254,14 +278,17 @@ fn wrap_must_consume(name: &str, inner: TokenStream) -> TokenStream {
 }
 
 fn make_elements(i: &Punctuated<Field, Comma>) -> impl Iterator<Item = TokenStream> + '_ {
-	i.iter().map(|field| {
+	let trait_path = paths::trait_();
+
+	i.iter().map(move |field| {
 		let attrs = FieldAttributes::get(&field.attrs);
 		let ty = &field.ty;
 		let ty_span = ty.span();
 
-		let inner = attrs
-			.with
-			.unwrap_or_else(|| quote_spanned!(ty_span=> assert_parse::<#ty>()));
+		let inner = attrs.with.map_or_else(
+			|| quote_spanned!(ty_span=> assert_parse::<#ty>()),
+			|with| quote_spanned!(with.span()=> (#with)(#trait_path::parse)),
+		);
 
 		let actual = if attrs.cut {
 			quote_spanned! {ty_span=> nom::combinator::cut(#inner) }

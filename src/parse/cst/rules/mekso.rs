@@ -1,5 +1,6 @@
+use super::helpers::{many0, many1};
 use super::{
-	Bihe, Bo, Boi, Frees, Fuha, Gek, Gik, Johi, JoikEk, JoikJek, Ke, Kehe, Kuhe, Luhu, Maho, Mekso,
+	Bihe, Bo, Boi, Frees, Fuha, Gek, Gik, Johi, JoikEk, JoikJek, Ke, Kehe, Kuhe, Luhu, Maho,
 	MiscNumbers, Mohe, Moi, Nahe, NaheGuhekTGik, Nahu, Nihe, Parse, Peho, Se, Selbri,
 	SelbriLikeConnectedPost, Separated, Sumti, SumtiLikeConnectedPost, SumtiModifier, TagWords, Tehu,
 	Veho, Vei, Vuhu, WithFree,
@@ -13,10 +14,7 @@ pub enum Expression {
 
 // this representation is quite clunky and does not match the semantic hierarchy of the RP expression, but that's a problem for the AST.
 #[derive(Debug, Parse)]
-pub struct ReversePolish(
-	pub Operand,
-	#[parse(with = "super::super::many0(Parse::parse)")] pub Box<[RPTail]>,
-);
+pub struct ReversePolish(pub Operand, #[parse(with = "many0")] pub Box<[RPTail]>);
 
 #[derive(Debug, Parse)]
 pub struct RPTail(pub ReversePolish, pub Operator);
@@ -31,7 +29,7 @@ pub enum Expression1 {
 pub struct ForethoughtExpression {
 	pub peho: Option<WithFree<Peho>>,
 	pub operator: Operator,
-	#[parse(with = "super::super::many1(Parse::parse)")]
+	#[parse(with = "many1")]
 	pub operands: Box<[Expression1]>,
 	pub kuhe: Option<Kuhe>,
 	pub frees: Frees,
@@ -40,7 +38,7 @@ pub struct ForethoughtExpression {
 #[derive(Debug, Parse)]
 pub struct Operand(
 	pub Operand1,
-	#[parse(with = "super::super::many0(Parse::parse)")] pub Box<[ConnectedOperand]>,
+	#[parse(with = "many0")] pub Box<[ConnectedOperand]>,
 );
 
 pub type ConnectedOperand = SumtiLikeConnectedPost<Operand1, Operand>;
@@ -50,7 +48,7 @@ pub struct Operand1(pub Separated<Operand2, (JoikEk, Option<TagWords>, WithFree<
 
 #[derive(Debug, Parse)]
 pub struct Operand2(
-	#[parse(with = "super::super::many0(Parse::parse)")] pub Box<[Operand2ConnectedPre]>,
+	#[parse(with = "many0")] pub Box<[Operand2ConnectedPre]>,
 	pub Operand3,
 );
 
@@ -63,12 +61,12 @@ pub enum Operand3 {
 	Mohe(WithFree<Mohe>, Sumti, Option<Tehu>, Frees),
 	Johi(
 		WithFree<Johi>,
-		#[parse(with = "super::super::many1(Parse::parse)")] Box<[Expression1]>,
+		#[parse(with = "many1")] Box<[Expression1]>,
 		Option<Tehu>,
 		Frees,
 	),
 	Modified(OperandModifier, Operand, Option<Luhu>),
-	Parenthesized(WithFree<Vei>, Mekso, Option<Veho>, Frees),
+	Parenthesized(WithFree<Vei>, Expression, Option<Veho>, Frees),
 	Number(MiscNumbers, #[parse(not = "Moi")] Option<Boi>, Frees),
 }
 
@@ -77,14 +75,14 @@ pub type OperandModifier = SumtiModifier;
 #[derive(Debug, Parse)]
 pub struct Operator(
 	pub Operator1,
-	#[parse(with = "super::super::many0(Parse::parse)")] pub Box<[ConnectedOperator]>,
+	#[parse(with = "many0")] pub Box<[ConnectedOperator]>,
 );
 
 pub type ConnectedOperator = SelbriLikeConnectedPost<Operator1, Operator>;
 
 #[derive(Debug, Parse)]
 pub struct Operator1(
-	#[parse(with = "super::super::many0(Parse::parse)")] pub Box<[NaheGuhekTGik<Self>]>,
+	#[parse(with = "many0")] pub Box<[NaheGuhekTGik<Self>]>,
 	pub Operator2,
 );
 
@@ -99,7 +97,7 @@ pub enum Operator3 {
 
 #[derive(Debug, Parse)]
 pub struct OperatorComponent(
-	#[parse(with = "super::super::many0(Parse::parse)")] Box<[OperatorComponentPre]>,
+	#[parse(with = "many0")] Box<[OperatorComponentPre]>,
 	OperatorComponent1,
 );
 
@@ -111,7 +109,7 @@ pub enum OperatorComponentPre {
 
 #[derive(Debug, Parse)]
 pub enum OperatorComponent1 {
-	Maho(WithFree<Maho>, Mekso, Option<Tehu>, Frees),
+	Maho(WithFree<Maho>, Expression, Option<Tehu>, Frees),
 	Nahu(WithFree<Nahu>, Selbri, Option<Tehu>, Frees),
 	Vuhu(WithFree<Vuhu>),
 }

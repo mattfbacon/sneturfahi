@@ -14,12 +14,18 @@ pub type Location = u32;
 	target_pointer_width = "64",
 	doc = "It is also smaller than a string slice, though it requires the original input to get an actual `&str` substring."
 )]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Span {
 	/// The index of the first byte of the span. This is included in the span.
 	pub start: Location,
 	/// The index immediately after the last byte of the span. This is not included in the span.
 	pub end: Location,
+}
+
+impl std::fmt::Debug for Span {
+	fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(formatter, "{}..{}", self.start, self.end)
+	}
 }
 
 impl Span {

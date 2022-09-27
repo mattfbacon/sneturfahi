@@ -19,6 +19,8 @@
 
 use std::io::Read as _;
 
+use sneturfahi::parse::tree_node::TreeNode;
+
 /// Interact with sneturfahi via the command line.
 #[derive(argh::FromArgs, Debug)]
 #[allow(clippy::struct_excessive_bools)] // CLI arguments
@@ -35,6 +37,9 @@ struct Args {
 	/// print the CST
 	#[argh(switch)]
 	cst: bool,
+	/// collapse single-child nodes in CST
+	#[argh(switch)]
+	collapse_cst: bool,
 }
 
 fn main() {
@@ -74,11 +79,47 @@ fn main() {
 
 		if args.cst {
 			match sneturfahi::Cst::parse(&lexed) {
-				Ok(cst) => println!("CST: {:#?}", cst.root()),
+				Ok(cst) => print_tree_node(cst.root(), input, args.collapse_cst),
 				Err(error) => println!("Error: {error:?}"),
 			}
 		}
 	});
+}
+
+fn print_tree_node(root: &dyn TreeNode, input: &str, collapse: bool) {
+	fn inner(mut node: &dyn TreeNode, input: &str, collapse: bool, level: usize) {
+		if collapse {
+			while {
+				let mut num_children = 0;
+				node.for_each_child(&mut |_| {
+					num_children += 1;
+				});
+				num_children == 1
+			} {
+				node.for_each_child(&mut |child| {
+					node = child;
+				});
+			}
+		}
+
+		print!(
+			"{blank:level$}{}{}",
+			node.name(),
+			if node.experimental() { "*" } else { "" },
+			blank = ""
+		);
+		let span = node
+			.start_location()
+			.map(|start| sneturfahi::Span::new(start, node.end_location().unwrap()));
+		if let Some(span) = span {
+			print!(" @ {span:?} {:?}", span.slice(input).unwrap());
+		}
+		println!();
+
+		node.for_each_child(&mut move |child| inner(child, input, collapse, level + 2));
+	}
+
+	inner(root, input, collapse, 0);
 }
 
 #[derive(Clone, Copy)]

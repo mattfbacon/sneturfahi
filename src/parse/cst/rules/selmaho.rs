@@ -1,9 +1,12 @@
+use macros::TreeNode;
+
 use super::helpers::many0;
 use super::Indicators;
 use crate::lex::{Selmaho, Token};
 use crate::parse::cst::error::{Error, WithLocation};
 use crate::parse::cst::parse_trait::{Parse, Result as ParseResult};
-use crate::Span;
+use crate::parse::tree_node::TreeNode;
+use crate::span::{Location, Span};
 
 pub(in crate::parse::cst::rules) trait SelmahoTypeRaw:
 	TryFrom<Token, Error = Error> + TryFrom<Option<Token>, Error = Error>
@@ -25,6 +28,33 @@ pub(in crate::parse::cst::rules) fn selmaho_raw<T: SelmahoTypeRaw>(
 }
 
 macro_rules! token_types {
+	(@inner $name:ident) => {paste::paste!{
+		#[derive(Debug)]
+		pub struct [<$name Inner>] {
+			pub experimental: bool,
+			pub span: Span,
+		}
+
+		impl TreeNode for [<$name Inner>] {
+			fn name(&self) -> &'static str {
+				Selmaho::$name.as_repr()
+			}
+
+			fn experimental(&self) -> bool {
+				self.experimental
+			}
+
+			fn start_location(&self) -> Option<Location> {
+				Some(self.span.start)
+			}
+
+			fn end_location(&self) -> Option<Location> {
+				Some(self.span.end)
+			}
+
+			fn for_each_child<'a>(&'a self, _: &mut dyn FnMut(&'a dyn TreeNode)) {}
+		}
+	}};
 	(@raw $name:ident) => {
 		#[derive(Debug)]
 		pub struct $name {
@@ -70,13 +100,34 @@ macro_rules! token_types {
 				selmaho_raw::<$name>(input)
 			}
 		}
+
+		impl TreeNode for $name {
+			fn name(&self) -> &'static str {
+				Selmaho::$name.as_repr()
+			}
+
+			fn experimental(&self) -> bool {
+				self.experimental
+			}
+
+			fn start_location(&self) -> Option<Location> {
+				Some(self.span.start)
+			}
+
+			fn end_location(&self) -> Option<Location> {
+				Some(self.span.end)
+			}
+
+			fn for_each_child<'a>(&'a self, _: &mut dyn FnMut(&'a dyn TreeNode)) {}
+		}
 	};
-	(@no_indicators $name:ident) => {
-		#[derive(Debug)]
+	(@no_indicators $name:ident) => {paste::paste!{
+		token_types!(@inner $name);
+
+		#[derive(Debug, TreeNode)]
 		pub struct $name {
 			pub bahe: Box<[Bahe]>,
-			pub experimental: bool,
-			pub span: Span,
+			pub inner: [<$name Inner>],
 		}
 
 		impl TryFrom<Token> for $name {
@@ -86,8 +137,10 @@ macro_rules! token_types {
 				if token.selmaho == Selmaho::$name {
 					Ok(Self {
 						bahe: Box::new([]),
-						experimental: token.experimental,
-						span: token.span,
+						inner: [<$name Inner>] {
+							experimental: token.experimental,
+							span: token.span,
+						},
 					})
 				} else {
 					Err(Error::ExpectedGot {
@@ -115,13 +168,14 @@ macro_rules! token_types {
 				Ok((input, matched))
 			}
 		}
-	};
-	(@single $name:ident) => {
-		#[derive(Debug)]
+	}};
+	(@single $name:ident) => {paste::paste!{
+		token_types!(@inner $name);
+
+		#[derive(Debug, TreeNode)]
 		pub struct $name {
 			pub bahe: Box<[Bahe]>,
-			pub experimental: bool,
-			pub span: Span,
+			pub inner: [<$name Inner>],
 			pub indicators: Option<Box<Indicators>>,
 		}
 
@@ -132,8 +186,10 @@ macro_rules! token_types {
 				if token.selmaho == Selmaho::$name {
 					Ok(Self {
 						bahe: Box::new([]),
-						experimental: token.experimental,
-						span: token.span,
+						inner: [<$name Inner>] {
+							experimental: token.experimental,
+							span: token.span,
+						},
 						indicators: None,
 					})
 				} else {
@@ -164,7 +220,7 @@ macro_rules! token_types {
 				Ok((input, matched))
 			}
 		}
-	};
+	}};
 	($(,)?) => {};
 	($(,)? $name:ident $($rest:tt)*) => {
 		token_types!(@single $name);

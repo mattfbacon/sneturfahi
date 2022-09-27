@@ -31,11 +31,18 @@ use quote::quote;
 use syn::{parse_macro_input, ItemFn};
 
 mod derive_parse;
+mod derive_tree_node;
 
 #[proc_macro_error]
 #[proc_macro_derive(Parse, attributes(cut, parse))]
 pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	derive_parse::derive_parse(input)
+}
+
+#[proc_macro_error]
+#[proc_macro_derive(TreeNode, attributes(tree_node))]
+pub fn derive_tree_node(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+	derive_tree_node::derive(input)
 }
 
 #[cfg(feature = "make-assert-parse-test")]

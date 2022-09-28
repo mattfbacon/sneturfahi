@@ -12,7 +12,7 @@ mod helpers;
 pub mod mekso;
 pub mod selmaho;
 
-use connectives::{Gek, Gihek, Gik, Guhek, JoikEk, JoikJek};
+use connectives::{Ek, Gek, Gihek, Gik, Guhek, Jek, Joik, JoikEk, JoikJek};
 use helpers::{many0, many1, EitherOrBoth, Separated};
 use mekso::{Expression as Mekso, Operator as MeksoOperator};
 #[allow(clippy::wildcard_imports)]
@@ -65,7 +65,11 @@ pub enum ParagraphItem {
 #[derive(Debug, Parse, TreeNode)]
 pub enum Fragment {
 	// answer to ek connective question
-	Ek(WithFree<JoikEk>),
+	Ek(WithFree<Ek>),
+	// answer to jek connective question
+	Jek(WithFree<Jek>),
+	// answer to ek or jek connective question
+	Joik(WithFree<Joik>),
 	// answer to gihek connective question
 	Gihek(WithFree<Gihek>),
 	// answer to number question

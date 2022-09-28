@@ -1,8 +1,6 @@
 use macros::TreeNode;
 
-use super::{
-	Bihi, Frees, Ga, Gaho, Gi, Giha, Guha, Ja, Joi, Na, Nai, Parse, Se, TagWords, WithFree, A,
-};
+use super::{Bihi, Frees, Ga, Gaho, Gi, Giha, Guha, Ja, Joi, Na, Nai, Parse, Se, TagWords, A};
 
 #[derive(Debug, Parse, TreeNode)]
 pub struct NaSeTNai<T> {
@@ -54,12 +52,12 @@ pub enum Gek {
 
 #[derive(Debug, Parse, TreeNode)]
 pub enum JoikJek {
-	Joik(WithFree<Joik>),
-	Jek(WithFree<Jek>),
+	Joik(Joik),
+	Jek(Jek),
 }
 
 #[derive(Debug, Parse, TreeNode)]
 pub enum JoikEk {
-	Joik(WithFree<Joik>),
-	Ek(WithFree<Ek>),
+	Joik(Joik),
+	Ek(Ek),
 }

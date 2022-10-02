@@ -1,6 +1,6 @@
 use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 use proc_macro_error::abort;
-use quote::{format_ident, quote, quote_spanned};
+use quote::{format_ident, quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
 use syn::{
 	parse_quote, Attribute, Data, DataEnum, DataStruct, DeriveInput, Fields, GenericParam, Generics,
@@ -202,17 +202,56 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 					<#name #ty_generics>::end_location(self)
 				}
 			}
+
+			#[automatically_derived]
+			impl #impl_generics #child_path for &#name #ty_generics #where_clause {
+				fn invoke_with_self<'a>(&'a self, f: &mut dyn FnMut(&'a dyn #trait_path)) {
+					<#name #ty_generics>::invoke_with_self(self, f);
+				}
+
+				fn experimental(&self) -> bool {
+					<#name #ty_generics>::experimental(self)
+				}
+
+				fn start_location(&self) -> Option<#location_path> {
+					<#name #ty_generics>::start_location(self)
+				}
+
+				fn end_location(&self) -> Option<#location_path> {
+					<#name #ty_generics>::end_location(self)
+				}
+			}
 		}
 		.into()
 	} else {
-		let name_str = attrs
-			.name
-			.unwrap_or_else(|| LitStr::new(&name_str, Span::call_site()));
+		let name_impl = match &input.data {
+			Data::Struct(..) => LitStr::new(&name_str, Span::call_site()).into_token_stream(),
+			Data::Enum(data) => {
+				let branches = data.variants.iter().map(|variant| {
+					let after = match variant.fields {
+						Fields::Named(..) => quote!({ .. }),
+						Fields::Unnamed(..) => quote!((..)),
+						Fields::Unit => quote!(),
+					};
+					let variant_ident = &variant.ident;
+					let path = quote!(Self::#variant_ident);
+					let name = LitStr::new(&format!("{}::{}", name, variant_ident), Span::call_site());
+					quote!(#path #after => #name,)
+				});
+				quote! {
+					match self {
+						#(#branches)*
+					}
+				}
+			}
+			Data::Union(..) => unreachable!(),
+		};
+
 		quote! {
 			#[automatically_derived]
 			impl #impl_generics #trait_path for #name #ty_generics #where_clause {
 				fn name(&self) -> &'static str {
-					#name_str
+					#name_impl
 				}
 
 				fn experimental(&self) -> bool {

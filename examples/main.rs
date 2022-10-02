@@ -81,7 +81,20 @@ fn main() {
 			let arena = sneturfahi::Arena::new();
 			match sneturfahi::Cst::parse(&lexed, &arena) {
 				Ok(cst) => print_tree_node(cst.root(), input, args.collapse_cst),
-				Err(error) => println!("Error: {error:?}"),
+				Err(error) => {
+					if let Some(any_token) = error
+						.location
+						.first()
+						.filter(|token| token.selmaho == sneturfahi::lex::Selmaho::AnyText)
+					{
+						println!(
+							"The token {any_token:?} could not be lexed. The content of this token is {:?}.",
+							any_token.span.slice(input).unwrap()
+						);
+					} else {
+						println!("Parse error: {error:?}");
+					}
+				}
 			}
 			println!("size of CST arena: {}", arena.allocated_bytes());
 		}

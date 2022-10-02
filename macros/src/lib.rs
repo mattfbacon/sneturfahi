@@ -71,7 +71,8 @@ pub fn make_assert_parse_test(input: proc_macro::TokenStream) -> proc_macro::Tok
 		fn #ident() {
 			let sentence = #lit;
 			eprintln!(".i caku jai cipra lodu'u gendra fa lu {:?} li'u", sentence);
-			crate::Cst::parse(&crate::lex(sentence).collect::<Result<Vec<_>, _>>().expect("lexing failed")).expect("parsing failed");
+			let arena = crate::Arena::new();
+			crate::Cst::parse(&crate::lex(sentence).collect::<Result<Vec<_>, _>>().expect("lexing failed"), &arena).expect("parsing failed");
 		}
 	}.into()
 }

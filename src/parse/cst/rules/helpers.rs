@@ -1,29 +1,52 @@
+use bumpalo::Bump as Arena;
 use macros::{Parse, TreeNode};
 
 use crate::lex::Token;
 use crate::parse::cst::error::WithLocation;
 use crate::parse::tree_node::{TreeNode, TreeNodeChild};
 
-pub(super) fn many0<'a, T>(
+pub(super) fn many0<'a, 'arena, T: 'arena>(
 	parser: impl nom::Parser<&'a [Token], T, WithLocation<'a>>,
-) -> impl nom::Parser<&'a [Token], Box<[T]>, WithLocation<'a>> {
-	nom::combinator::map(nom::multi::many0(parser), Vec::into_boxed_slice)
+	arena: &'arena Arena,
+) -> impl nom::Parser<&'a [Token], &'arena [T], WithLocation<'a>> {
+	nom::combinator::map(nom::multi::many0(parser), |parsed| {
+		&*arena.alloc_slice_fill_iter(parsed.into_iter())
+	})
 }
 
-pub(super) fn many1<'a, T>(
+pub(super) fn many1<'a, 'arena, T: 'arena>(
 	parser: impl nom::Parser<&'a [Token], T, WithLocation<'a>>,
-) -> impl nom::Parser<&'a [Token], Box<[T]>, WithLocation<'a>> {
-	nom::combinator::map(nom::multi::many1(parser), Vec::into_boxed_slice)
+	arena: &'arena Arena,
+) -> impl nom::Parser<&'a [Token], &'arena [T], WithLocation<'a>> {
+	nom::combinator::map(nom::multi::many1(parser), |parsed| {
+		&*arena.alloc_slice_fill_iter(parsed.into_iter())
+	})
+}
+
+pub(super) struct PassArena<'arena, T>(&'arena Arena, std::marker::PhantomData<fn() -> T>);
+
+impl<'arena, T> PassArena<'arena, T> {
+	pub(super) fn new(arena: &'arena Arena) -> Self {
+		Self(arena, std::marker::PhantomData)
+	}
+}
+
+impl<'a: 'arena, 'arena, T: super::super::parse_trait::Parse<'arena>>
+	nom::Parser<&'a [Token], T, WithLocation<'a>> for PassArena<'arena, T>
+{
+	fn parse(&mut self, input: &'a [Token]) -> super::ParseResult<'a, T> {
+		T::parse(input, self.0)
+	}
 }
 
 #[derive(Parse)]
-pub struct Separated<Item, Separator> {
-	pub first: Box<Item>,
+pub struct Separated<'arena, Item, Separator> {
+	pub first: &'arena Item,
 	#[parse(with = "many0")]
-	pub rest: Box<[(Separator, Item)]>,
+	pub rest: &'arena [(Separator, Item)],
 }
 
-impl<Item: TreeNodeChild, Separator: TreeNodeChild> TreeNode for Separated<Item, Separator> {
+impl<Item: TreeNodeChild, Separator: TreeNodeChild> TreeNode for Separated<'_, Item, Separator> {
 	fn name(&self) -> &'static str {
 		"Separated"
 	}
@@ -50,7 +73,7 @@ impl<Item: TreeNodeChild, Separator: TreeNodeChild> TreeNode for Separated<Item,
 			.rest
 			.iter()
 			.rev()
-			.find_map(|(separator, item)| separator.start_location().or_else(|| item.end_location()))
+			.find_map(|(separator, item)| item.end_location().or_else(|| separator.end_location()))
 			.or_else(|| self.first.end_location())
 	}
 
@@ -65,7 +88,7 @@ impl<Item: TreeNodeChild, Separator: TreeNodeChild> TreeNode for Separated<Item,
 
 // print as a single list with the separators interleaved. obviously this would not be valid rust, but it cuts down indentation.
 impl<Item: std::fmt::Debug, Separator: std::fmt::Debug> std::fmt::Debug
-	for Separated<Item, Separator>
+	for Separated<'_, Item, Separator>
 {
 	fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		formatter.write_str("Separated ")?;

@@ -2,6 +2,7 @@
 
 // https://raw.githubusercontent.com/lojban/camxes-py/master/camxes_py/parsers/camxes_ilmen.peg
 
+use bumpalo::Bump as Arena;
 use macros::{Parse, TreeNode};
 
 use crate::lex::{Selmaho, Token};
@@ -23,609 +24,688 @@ use crate::parse::tree_node::TreeNode;
 
 #[derive(Debug, Parse, TreeNode)]
 #[tree_node(passthrough_child)]
-pub struct WithFree<Inner> {
+pub struct WithFree<'arena, Inner> {
 	pub inner: Inner,
-	pub frees: Frees,
+	pub frees: Frees<'arena>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
 #[tree_node(passthrough_child)]
-pub struct Frees(#[parse(with = "many0")] pub Box<[Free]>);
+pub struct Frees<'arena>(#[parse(with = "many0")] pub &'arena [Free<'arena>]);
 
-pub type Root = Text;
+pub type Root<'arena> = Text<'arena>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Text {
-	pub initial_indicators: Option<Indicators>,
-	pub initial_frees: Frees,
-	pub initial_paragraph_separator: Option<ParagraphSeparator>,
-	pub paragraphs: Option<Paragraphs>,
-	pub faho: Option<Faho>,
+pub struct Text<'arena> {
+	pub initial_indicators: Option<Indicators<'arena>>,
+	pub initial_frees: Frees<'arena>,
+	pub initial_paragraph_separator: Option<ParagraphSeparator<'arena>>,
+	pub paragraphs: Option<Paragraphs<'arena>>,
+	pub faho: Option<Faho<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Paragraphs(Separated<Paragraph, ParagraphSeparator>);
+pub struct Paragraphs<'arena>(Separated<'arena, Paragraph<'arena>, ParagraphSeparator<'arena>>);
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Paragraph {
-	pub initial_sentence_separator: Option<SentenceSeparator>,
-	pub sentences: ParagraphItems,
+pub struct Paragraph<'arena> {
+	pub initial_sentence_separator: Option<SentenceSeparator<'arena>>,
+	pub sentences: ParagraphItems<'arena>,
 }
 
-pub type ParagraphItems = Separated<ParagraphItem, SentenceSeparator>;
+pub type ParagraphItems<'arena> =
+	Separated<'arena, ParagraphItem<'arena>, SentenceSeparator<'arena>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum ParagraphItem {
+pub enum ParagraphItem<'arena> {
 	#[parse(must_consume)]
-	Sentences(Sentences1),
-	Fragment(Box<Fragment>),
+	Sentences(Sentences1<'arena>),
+	Fragment(&'arena Fragment<'arena>),
 	Empty(),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Fragment {
+pub enum Fragment<'arena> {
 	// answer to ek connective question
-	Ek(WithFree<Ek>),
+	Ek(WithFree<'arena, Ek<'arena>>),
 	// answer to jek connective question
-	Jek(WithFree<Jek>),
+	Jek(WithFree<'arena, Jek<'arena>>),
 	// answer to ek or jek connective question
-	Joik(WithFree<Joik>),
+	Joik(WithFree<'arena, Joik<'arena>>),
 	// answer to gihek connective question
-	Gihek(WithFree<Gihek>),
+	Gihek(WithFree<'arena, Gihek<'arena>>),
 	// answer to number question
 	// this is Quantifier rather than something that accepts MiscNumber because a lerfu string that starts with a letteral can be parsed as a sumti instead
-	Number(Quantifier),
+	Number(Quantifier<'arena>),
 	// answer to negation question?
-	Na(Na, #[parse(not = "Ja")] Frees),
+	Na(Na<'arena>, #[parse(not = "Ja<'_>")] Frees<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Sentences1(
-	#[parse(with = "many0")] pub Box<[Prenex]>,
-	pub Separated<Sentences2, ConnectedSentenceSeparator>,
+pub struct Sentences1<'arena>(
+	#[parse(with = "many0")] pub &'arena [Prenex<'arena>],
+	pub Separated<'arena, Sentences2<'arena>, ConnectedSentenceSeparator<'arena>>,
 );
-pub type Sentences2 = Separated<Sentences3, CloseSentenceSeparator>;
+pub type Sentences2<'arena> = Separated<'arena, Sentences3<'arena>, CloseSentenceSeparator<'arena>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Sentences3 {
+pub enum Sentences3<'arena> {
 	Grouped(
-		Option<TagWords>,
-		WithFree<Tuhe>,
-		Paragraphs,
-		Option<Tuhu>,
-		Frees,
+		Option<TagWords<'arena>>,
+		WithFree<'arena, Tuhe<'arena>>,
+		Paragraphs<'arena>,
+		Option<Tuhu<'arena>>,
+		Frees<'arena>,
 	),
-	Single(Box<Sentence>),
+	Single(&'arena Sentence<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct ParagraphSeparator(#[parse(with = "many1")] Box<[Niho]>, Frees);
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct SentenceSeparator(pub I, #[parse(not = "Bu")] pub Frees);
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct ConnectedSentenceSeparator(pub I, pub JoikJek, pub Frees);
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct CloseSentenceSeparator(
-	pub I,
-	pub Option<JoikJek>,
-	pub Option<TagWords>,
-	pub Bo,
-	pub Frees,
+pub struct ParagraphSeparator<'arena>(
+	#[parse(with = "many1")] &'arena [Niho<'arena>],
+	Frees<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Sentence {
-	pub before_args: Args,
-	pub tail: Option<SentenceTail>,
+pub struct SentenceSeparator<'arena>(pub I<'arena>, #[parse(not = "Bu")] pub Frees<'arena>);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct ConnectedSentenceSeparator<'arena>(
+	pub I<'arena>,
+	pub JoikJek<'arena>,
+	pub Frees<'arena>,
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct CloseSentenceSeparator<'arena>(
+	pub I<'arena>,
+	pub Option<JoikJek<'arena>>,
+	pub Option<TagWords<'arena>>,
+	pub Bo<'arena>,
+	pub Frees<'arena>,
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct Sentence<'arena> {
+	pub before_args: Args<'arena>,
+	pub tail: Option<SentenceTail<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SentenceTail(pub Option<Cu>, pub Frees, pub SentenceTail1);
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct SentenceTail1(pub SentenceTail2, pub Option<SentenceTail1After>);
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct SentenceTail1After(
-	Gihek,
-	Option<TagWords>,
-	Ke,
-	Frees,
-	Box<SentenceTail1>,
-	Option<Kehe>,
-	Frees,
-	TailArgs,
+pub struct SentenceTail<'arena>(
+	pub Option<Cu<'arena>>,
+	pub Frees<'arena>,
+	pub SentenceTail1<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SentenceTail2(pub Box<SentenceTail3>, pub Option<SentenceTail2After>);
+pub struct SentenceTail1<'arena>(
+	pub SentenceTail2<'arena>,
+	pub Option<SentenceTail1After<'arena>>,
+);
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SentenceTail2Connective(
-	pub Gihek,
+pub struct SentenceTail1After<'arena>(
+	Gihek<'arena>,
+	Option<TagWords<'arena>>,
+	Ke<'arena>,
+	Frees<'arena>,
+	&'arena SentenceTail1<'arena>,
+	Option<Kehe<'arena>>,
+	Frees<'arena>,
+	TailArgs<'arena>,
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct SentenceTail2<'arena>(
+	pub &'arena SentenceTail3<'arena>,
+	pub Option<SentenceTail2After<'arena>>,
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct SentenceTail2Connective<'arena>(
+	pub Gihek<'arena>,
 	// `gi'e ke ...` must be parsed as SentenceTail1After, not a parenthesized tanru
-	#[parse(not = "(Option<TagWords>, Ke)")] pub Frees,
+	#[parse(not = "(Option<TagWords<'_>>, Ke<'_>)")] pub Frees<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SentenceTail2After(
-	#[parse(with = "many1")] pub Box<[(SentenceTail2Connective, SentenceTail3)]>,
-	pub TailArgs,
+pub struct SentenceTail2After<'arena>(
+	#[parse(with = "many1")] pub &'arena [(SentenceTail2Connective<'arena>, SentenceTail3<'arena>)],
+	pub TailArgs<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SentenceTail3(pub Box<SentenceTail4>, pub Option<SentenceTail3After>);
+pub struct SentenceTail3<'arena>(
+	pub &'arena SentenceTail4<'arena>,
+	pub Option<SentenceTail3After<'arena>>,
+);
 
-pub type SentenceTail3Connective = (Gihek, Option<TagWords>, Bo, Frees);
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct SentenceTail3After(
-	#[parse(with = "many1")] Box<[(SentenceTail3Connective, SentenceTail4)]>,
-	TailArgs,
+pub type SentenceTail3Connective<'arena> = (
+	Gihek<'arena>,
+	Option<TagWords<'arena>>,
+	Bo<'arena>,
+	Frees<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum SentenceTail4 {
-	Single(Selbri, TailArgs),
+pub struct SentenceTail3After<'arena>(
+	#[parse(with = "many1")] &'arena [(SentenceTail3Connective<'arena>, SentenceTail4<'arena>)],
+	TailArgs<'arena>,
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub enum SentenceTail4<'arena> {
+	Single(Selbri<'arena>, TailArgs<'arena>),
 	Parenthesized(
-		#[parse(with = "many0")] Box<[WithFree<Na>]>,
-		Option<TagWords>,
-		WithFree<Ke>,
-		Box<GekSentence>,
-		Option<Kehe>,
-		Frees,
+		#[parse(with = "many0")] &'arena [WithFree<'arena, Na<'arena>>],
+		Option<TagWords<'arena>>,
+		WithFree<'arena, Ke<'arena>>,
+		&'arena GekSentence<'arena>,
+		Option<Kehe<'arena>>,
+		Frees<'arena>,
 	),
-	Connected(Box<GekSentence>),
+	Connected(&'arena GekSentence<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct GekSentence(
-	#[parse(with = "many0")] pub Box<[WithFree<Na>]>,
-	pub Gek,
-	pub Subsentence,
-	pub Gik,
-	pub Subsentence,
-	pub TailArgs,
+pub struct GekSentence<'arena>(
+	#[parse(with = "many0")] pub &'arena [WithFree<'arena, Na<'arena>>],
+	pub Gek<'arena>,
+	pub Subsentence<'arena>,
+	pub Gik<'arena>,
+	pub Subsentence<'arena>,
+	pub TailArgs<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Subsentence(
-	#[parse(with = "many0")] pub Box<[Prenex]>,
-	Args,
-	SentenceTail,
+pub struct Subsentence<'arena>(
+	#[parse(with = "many0")] pub &'arena [Prenex<'arena>],
+	Args<'arena>,
+	SentenceTail<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
 #[tree_node(passthrough_child)]
-pub struct Args(#[parse(with = "many0")] pub Box<[Arg]>);
+pub struct Args<'arena>(#[parse(with = "many0")] pub &'arena [Arg<'arena>]);
 
 #[derive(Debug, Parse, TreeNode)]
 #[tree_node(passthrough_child)]
-pub struct TailArgs(pub Args, pub Option<Vau>, pub Frees);
+pub struct TailArgs<'arena>(pub Args<'arena>, pub Option<Vau<'arena>>, pub Frees<'arena>);
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Prenex {
-	pub terms: Args,
-	pub zohu: Zohu,
-	pub frees: Frees,
+pub struct Prenex<'arena> {
+	pub terms: Args<'arena>,
+	pub zohu: Zohu<'arena>,
+	pub frees: Frees<'arena>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Arg(
-	Arg1,
-	#[parse(with = "many0")] Box<[SumtiLikeConnectedPost<Arg1, Self>]>,
+pub struct Arg<'arena>(
+	Arg1<'arena>,
+	#[parse(with = "many0")] &'arena [SumtiLikeConnectedPost<'arena, Arg1<'arena>, Self>],
 );
 
-pub type Arg1 = Separated<Arg2, PeheConnective>;
+pub type Arg1<'arena> = Separated<'arena, Arg2<'arena>, PeheConnective<'arena>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct PeheConnective(WithFree<Pehe>, JoikJek);
+pub struct PeheConnective<'arena>(WithFree<'arena, Pehe<'arena>>, JoikJek<'arena>);
 
-pub type Arg2 = Separated<Arg3, WithFree<Cehe>>;
+pub type Arg2<'arena> = Separated<'arena, Arg3<'arena>, WithFree<'arena, Cehe<'arena>>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Arg3 {
-	Tag(Tag),
+pub enum Arg3<'arena> {
+	Tag(Tag<'arena>),
 	Sumti {
-		fa: Option<WithFree<Fa>>,
-		sumti: Sumti,
+		fa: Option<WithFree<'arena, Fa<'arena>>>,
+		sumti: Sumti<'arena>,
 	},
-	Naku(Na, Ku, Frees),
-	Termset(Box<Termset>),
+	Naku(Na<'arena>, Ku<'arena>, Frees<'arena>),
+	Termset(&'arena Termset<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Termset {
-	Gek(Gek, Args, Gik, Args),
+pub enum Termset<'arena> {
+	Gek(Gek<'arena>, Args<'arena>, Gik<'arena>, Args<'arena>),
 	NuhiGi(
-		WithFree<Nuhi>,
-		Gek,
-		Args,
-		Option<Nuhu>,
-		Frees,
-		Gik,
-		Args,
-		Option<Nuhu>,
-		Frees,
+		WithFree<'arena, Nuhi<'arena>>,
+		Gek<'arena>,
+		Args<'arena>,
+		Option<Nuhu<'arena>>,
+		Frees<'arena>,
+		Gik<'arena>,
+		Args<'arena>,
+		Option<Nuhu<'arena>>,
+		Frees<'arena>,
 	),
-	Nuhi(WithFree<Nuhi>, Args, Option<Nuhu>, Frees),
+	Nuhi(
+		WithFree<'arena, Nuhi<'arena>>,
+		Args<'arena>,
+		Option<Nuhu<'arena>>,
+		Frees<'arena>,
+	),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Selbri {
+pub struct Selbri<'arena> {
 	#[parse(with = "many0")]
-	pub before: Box<[SelbriBefore]>,
+	pub before: &'arena [SelbriBefore<'arena>],
 	// all other `Separated` will use `false` for `should_cut`
-	pub components: Selbri1,
+	pub components: Selbri1<'arena>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum SelbriBefore {
-	Na(WithFree<Na>),
-	Tag(TagWords),
+pub enum SelbriBefore<'arena> {
+	Na(WithFree<'arena, Na<'arena>>),
+	Tag(TagWords<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
 #[repr(transparent)]
-pub struct Selbri1(Separated<Selbri2, WithFree<Co>>);
+pub struct Selbri1<'arena>(Separated<'arena, Selbri2<'arena>, WithFree<'arena, Co<'arena>>>);
 
 #[derive(Debug, Parse, TreeNode)]
 #[repr(transparent)]
-pub struct Selbri2(#[parse(with = "many1")] Box<[Selbri3]>);
+pub struct Selbri2<'arena>(#[parse(with = "many1")] &'arena [Selbri3<'arena>]);
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Selbri3(
-	pub Selbri4,
-	#[parse(with = "many0")] pub Box<[Selbri3ConnectedPost]>,
+pub struct Selbri3<'arena>(
+	pub Selbri4<'arena>,
+	#[parse(with = "many0")] pub &'arena [Selbri3ConnectedPost<'arena>],
 );
 
-pub type Selbri3ConnectedPost = SelbriLikeConnectedPost<Selbri4, Selbri2>;
+pub type Selbri3ConnectedPost<'arena> =
+	SelbriLikeConnectedPost<'arena, Selbri4<'arena>, Selbri2<'arena>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum SelbriLikeConnectedPost<Normal, Parenthesized> {
-	Normal(JoikJek, Normal),
+pub enum SelbriLikeConnectedPost<'arena, Normal, Parenthesized> {
+	Normal(JoikJek<'arena>, Normal),
 	Parenthesized(
-		JoikJek,
-		Option<TagWords>,
-		WithFree<Ke>,
+		JoikJek<'arena>,
+		Option<TagWords<'arena>>,
+		WithFree<'arena, Ke<'arena>>,
 		Parenthesized,
-		Option<Kehe>,
-		Frees,
+		Option<Kehe<'arena>>,
+		Frees<'arena>,
 	),
 }
 
-pub type Selbri4 = Separated<Selbri5, (JoikJek, Option<TagWords>, Bo, Frees)>;
-
 #[derive(Debug, Parse, TreeNode)]
-pub struct Selbri5(
-	#[parse(with = "many0")] pub Box<[NaheGuhekTGik<Selbri>]>,
-	pub Selbri6,
+#[repr(transparent)]
+pub struct Selbri4<'arena>(
+	pub  Separated<
+		'arena,
+		Selbri5<'arena>,
+		(
+			JoikJek<'arena>,
+			Option<TagWords<'arena>>,
+			Bo<'arena>,
+			Frees<'arena>,
+		),
+	>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct NaheGuhekTGik<T>(pub Option<Nahe>, pub Frees, pub Guhek, pub T, pub Gik);
+pub struct Selbri5<'arena>(
+	#[parse(with = "many0")] pub &'arena [NaheGuhekTGik<'arena, Selbri<'arena>>],
+	pub Selbri6<'arena>,
+);
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Selbri6(pub Separated<TanruUnit, WithFree<Bo>>);
+pub struct NaheGuhekTGik<'arena, T>(
+	pub Option<Nahe<'arena>>,
+	pub Frees<'arena>,
+	pub Guhek<'arena>,
+	pub T,
+	pub Gik<'arena>,
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct Selbri6<'arena>(pub Separated<'arena, TanruUnit<'arena>, WithFree<'arena, Bo<'arena>>>);
 
 #[derive(Debug, Parse, TreeNode)]
 #[repr(transparent)]
-pub struct TanruUnit(pub Separated<TanruUnit1, WithFree<Cei>>);
+pub struct TanruUnit<'arena>(
+	pub Separated<'arena, TanruUnit1<'arena>, WithFree<'arena, Cei<'arena>>>,
+);
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct TanruUnit1 {
+pub struct TanruUnit1<'arena> {
 	#[parse(with = "many0")]
-	pub before: Box<[BeforeTanruUnit]>,
-	pub inner: TanruUnit2,
-	pub bound_arguments: Option<BoundArguments>,
+	pub before: &'arena [BeforeTanruUnit<'arena>],
+	pub inner: TanruUnit2<'arena>,
+	pub bound_arguments: Option<BoundArguments<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum BeforeTanruUnit {
+pub enum BeforeTanruUnit<'arena> {
 	Jai {
-		jai: WithFree<Jai>,
-		tag: Option<TagWords>,
+		jai: WithFree<'arena, Jai<'arena>>,
+		tag: Option<TagWords<'arena>>,
 	},
-	Nahe(WithFree<Nahe>),
-	Se(WithFree<Se>),
+	Nahe(WithFree<'arena, Nahe<'arena>>),
+	Se(WithFree<'arena, Se<'arena>>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct BoundArguments {
-	pub be: WithFree<Be>,
-	pub args: Separated<Arg, WithFree<Bei>>,
-	pub beho: Option<Beho>,
-	pub frees: Frees,
+pub struct BoundArguments<'arena> {
+	pub be: WithFree<'arena, Be<'arena>>,
+	pub args: Separated<'arena, Arg<'arena>, WithFree<'arena, Bei<'arena>>>,
+	pub beho: Option<Beho<'arena>>,
+	pub frees: Frees<'arena>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum TanruUnit2 {
+pub enum TanruUnit2<'arena> {
 	GroupedTanru {
-		ke: WithFree<Ke>,
-		group: Selbri2, /* not `Selbri` because ke-ke'e groupings can't encompass co (CLL 5.8) nor tense, modal, and negation cmavo (CLL 5.13). `Selbri2` is inside co groupings (`Selbri1`) and na/tags (`Selbri`). */
-		kehe: Option<Kehe>,
-		frees: Frees,
+		ke: WithFree<'arena, Ke<'arena>>,
+		group: Selbri2<'arena>, /* not `Selbri` because ke-ke'e groupings can't encompass co (CLL 5.8) nor tense, modal, and negation cmavo (CLL 5.13). `Selbri2` is inside co groupings (`Selbri1`) and na/tags (`Selbri`). */
+		kehe: Option<Kehe<'arena>>,
+		frees: Frees<'arena>,
 	},
-	Gismu(WithFree<Gismu>),
-	Lujvo(WithFree<Lujvo>),
-	Fuhivla(WithFree<Fuhivla>),
+	Gismu(WithFree<'arena, Gismu<'arena>>),
+	Lujvo(WithFree<'arena, Lujvo<'arena>>),
+	Fuhivla(WithFree<'arena, Fuhivla<'arena>>),
 	Goha {
-		goha: Goha,
-		raho: Option<Raho>,
-		frees: Frees,
+		goha: Goha<'arena>,
+		raho: Option<Raho<'arena>>,
+		frees: Frees<'arena>,
 	},
-	Moi(MiscNumbers, Moi, Frees),
+	Moi(MiscNumbers<'arena>, Moi<'arena>, Frees<'arena>),
 	Me {
-		me: WithFree<Me>,
-		inner: Sumti,
-		mehu: Option<Mehu>,
-		frees: Frees,
-		moi: Option<WithFree<Moi>>,
+		me: WithFree<'arena, Me<'arena>>,
+		inner: Sumti<'arena>,
+		mehu: Option<Mehu<'arena>>,
+		frees: Frees<'arena>,
+		moi: Option<WithFree<'arena, Moi<'arena>>>,
 	},
 	Nu {
-		nus: Separated<(Nu, Option<Nai>, Frees), JoikJek>,
-		inner: Box<Subsentence>,
-		kei: Option<Kei>,
-		frees: Frees,
+		nus: Separated<'arena, (Nu<'arena>, Option<Nai<'arena>>, Frees<'arena>), JoikJek<'arena>>,
+		inner: &'arena Subsentence<'arena>,
+		kei: Option<Kei<'arena>>,
+		frees: Frees<'arena>,
 	},
 	Nuha {
-		nuha: WithFree<Nuha>,
-		operator: MeksoOperator,
+		nuha: WithFree<'arena, Nuha<'arena>>,
+		operator: MeksoOperator<'arena>,
 	},
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Tag {
-	pub words: TagWords,
+pub struct Tag<'arena> {
+	pub words: TagWords<'arena>,
 	// e.g., "ri'agi broda gi brode" or "ri'agi ko'a gi ko'e". this rule would consume `ri'a` with no argument and leave just a `gi`.
-	#[parse(not = "Gik", not = "Ke")]
-	pub value: Option<TagValue>,
+	#[parse(not = "Gik<'_>", not = "Ke<'_>")]
+	pub value: Option<TagValue<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum TagValue {
-	Ku(WithFree<Ku>),
-	Sumti(Sumti),
+pub enum TagValue<'arena> {
+	Ku(WithFree<'arena, Ku<'arena>>),
+	Sumti(Sumti<'arena>),
 }
 
-pub type TagWords = Separated<TagWord, JoikJek>;
+pub type TagWords<'arena> = Separated<'arena, TagWord<'arena>, JoikJek<'arena>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum TagWord {
+pub enum TagWord<'arena> {
 	Bai {
-		nahe: Option<Nahe>,
-		se: Option<Se>,
-		bai: Bai,
-		nai: Option<Nai>,
-		ki: Option<Ki>,
-		frees: Frees,
+		nahe: Option<Nahe<'arena>>,
+		se: Option<Se<'arena>>,
+		bai: Bai<'arena>,
+		nai: Option<Nai<'arena>>,
+		ki: Option<Ki<'arena>>,
+		frees: Frees<'arena>,
 	},
 	TimeSpaceCaha {
-		nahe: Option<Nahe>,
+		nahe: Option<Nahe<'arena>>,
 		#[parse(with = "many1")]
-		inner: Box<[TimeSpaceCaha]>,
-		ki: Option<Ki>,
-		frees: Frees,
+		inner: &'arena [TimeSpaceCaha<'arena>],
+		ki: Option<Ki<'arena>>,
+		frees: Frees<'arena>,
 	},
-	Ki(Ki, Frees),
-	Cuhe(Cuhe, Frees),
-	Converted(WithFree<Fiho>, Selbri, Option<Fehu>, Frees),
+	Ki(Ki<'arena>, Frees<'arena>),
+	Cuhe(Cuhe<'arena>, Frees<'arena>),
+	Converted(
+		WithFree<'arena, Fiho<'arena>>,
+		Selbri<'arena>,
+		Option<Fehu<'arena>>,
+		Frees<'arena>,
+	),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum TimeSpaceCaha {
-	Time(Time),
-	Space(Box<Space>),
-	Caha(Caha),
+pub enum TimeSpaceCaha<'arena> {
+	Time(&'arena Time<'arena>),
+	Space(&'arena Space<'arena>),
+	Caha(Caha<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
 #[parse(postcond("|time| time.zi.is_some() || !time.offset.is_empty() || time.duration.is_some() || !time.properties.is_empty()"))]
-pub struct Time {
-	pub zi: Option<Zi>,
+pub struct Time<'arena> {
+	pub zi: Option<Zi<'arena>>,
 	#[parse(with = "many0")]
-	pub offset: Box<[TimeOffset]>,
-	pub duration: Option<TimeDuration>,
+	pub offset: &'arena [TimeOffset<'arena>],
+	pub duration: Option<TimeDuration<'arena>>,
 	#[parse(with = "many0")]
-	pub properties: Box<[TimeIntervalProperty]>,
+	pub properties: &'arena [TimeIntervalProperty<'arena>],
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct TimeOffset {
-	pub pu: Pu,
-	pub nai: Option<Nai>,
-	pub zi: Option<Zi>,
+pub struct TimeOffset<'arena> {
+	pub pu: Pu<'arena>,
+	pub nai: Option<Nai<'arena>>,
+	pub zi: Option<Zi<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct TimeDuration {
-	pub zeha: Zeha,
+pub struct TimeDuration<'arena> {
+	pub zeha: Zeha<'arena>,
 	/// see CLL 10.5, specifically examples 10.26 through 10.29
-	pub anchor: Option<(Pu, Option<Nai>)>,
+	pub anchor: Option<(Pu<'arena>, Option<Nai<'arena>>)>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum IntervalProperty {
-	Roi(Number, Roi, Option<Nai>),
-	Tahe(Tahe, Option<Nai>),
-	Zaho(Zaho, Option<Nai>),
+pub enum IntervalProperty<'arena> {
+	Roi(Number<'arena>, Roi<'arena>, Option<Nai<'arena>>),
+	Tahe(Tahe<'arena>, Option<Nai<'arena>>),
+	Zaho(Zaho<'arena>, Option<Nai<'arena>>),
 }
 
-pub type TimeIntervalProperty = IntervalProperty;
+pub type TimeIntervalProperty<'arena> = IntervalProperty<'arena>;
 
 #[derive(Debug, Parse, TreeNode)]
 #[parse(postcond("|space| space.va.is_some() || !space.offset.is_empty() || space.interval.is_some() || space.motion.is_some()"))]
-pub struct Space {
-	pub va: Option<Va>,
+pub struct Space<'arena> {
+	pub va: Option<Va<'arena>>,
 	#[parse(with = "many0")]
-	pub offset: Box<[SpaceOffset]>,
-	pub interval: Option<SpaceInterval>,
-	pub motion: Option<SpaceMotion>,
+	pub offset: &'arena [SpaceOffset<'arena>],
+	pub interval: Option<SpaceInterval<'arena>>,
+	pub motion: Option<SpaceMotion<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SpaceOffset(Faha, Option<Nai>, Option<Va>);
+pub struct SpaceOffset<'arena>(Faha<'arena>, Option<Nai<'arena>>, Option<Va<'arena>>);
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum SpaceInterval {
+pub enum SpaceInterval<'arena> {
 	Interval {
-		interval: EitherOrBoth<Veha, Viha>,
-		direction: Option<(Faha, Option<Nai>)>,
+		interval: EitherOrBoth<Veha<'arena>, Viha<'arena>>,
+		direction: Option<(Faha<'arena>, Option<Nai<'arena>>)>,
 		#[parse(with = "many0")]
-		properties: Box<[SpaceIntervalProperty]>,
+		properties: &'arena [SpaceIntervalProperty<'arena>],
 	},
-	Properties(#[parse(with = "many1")] Box<[SpaceIntervalProperty]>),
+	Properties(#[parse(with = "many1")] &'arena [SpaceIntervalProperty<'arena>]),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SpaceIntervalProperty(Fehe, IntervalProperty);
+pub struct SpaceIntervalProperty<'arena>(Fehe<'arena>, IntervalProperty<'arena>);
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SpaceMotion {
-	pub mohi: Mohi,
-	pub offset: SpaceOffset,
+pub struct SpaceMotion<'arena> {
+	pub mohi: Mohi<'arena>,
+	pub offset: SpaceOffset<'arena>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Sumti {
-	pub inner: Sumti1,
-	pub vuho_relative: Option<VuhoRelative>,
+pub struct Sumti<'arena> {
+	pub inner: Sumti1<'arena>,
+	pub vuho_relative: Option<VuhoRelative<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Sumti1(
-	pub Sumti2,
-	#[parse(with = "many0")] pub Box<[SumtiLikeConnectedPost<Sumti2, Sumti>]>,
+pub struct Sumti1<'arena>(
+	pub Sumti2<'arena>,
+	#[parse(with = "many0")]
+	pub  &'arena [SumtiLikeConnectedPost<'arena, Sumti2<'arena>, Sumti<'arena>>],
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum SumtiLikeConnectedPost<Normal, Parenthesized> {
-	Normal(JoikEk, Normal),
+pub enum SumtiLikeConnectedPost<'arena, Normal, Parenthesized> {
+	Normal(JoikEk<'arena>, Normal),
 	Grouped(
-		JoikEk,
-		Option<TagWords>,
-		WithFree<Ke>,
+		JoikEk<'arena>,
+		Option<TagWords<'arena>>,
+		WithFree<'arena, Ke<'arena>>,
 		Parenthesized,
-		Option<Kehe>,
-		Frees,
+		Option<Kehe<'arena>>,
+		Frees<'arena>,
 	),
 }
 
-pub type Sumti2 = Separated<Sumti3, (JoikEk, Option<TagWords>, Bo, Frees)>;
+pub type Sumti2<'arena> = Separated<
+	'arena,
+	Sumti3<'arena>,
+	(
+		JoikEk<'arena>,
+		Option<TagWords<'arena>>,
+		Bo<'arena>,
+		Frees<'arena>,
+	),
+>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct VuhoRelative {
-	pub vuho: WithFree<Vuho>,
-	pub relative_clauses: RelativeClauses,
+pub struct VuhoRelative<'arena> {
+	pub vuho: WithFree<'arena, Vuho<'arena>>,
+	pub relative_clauses: RelativeClauses<'arena>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct RelativeClauses(Separated<RelativeClause, WithFree<Zihe>>);
-
-#[derive(Debug, Parse, TreeNode)]
-pub enum RelativeClause {
-	Goi(GoiRelativeClause),
-	Noi(NoiRelativeClause),
-}
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct GoiRelativeClause {
-	pub goi: WithFree<Goi>,
-	/// typical usage would match Arg::Sumti, but Arg::Tag is possible as well, such as in `la salis nesemau la betis cu se prami mi`
-	pub inner: Arg,
-	pub gehu: Option<Gehu>,
-	pub frees: Frees,
-}
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct NoiRelativeClause {
-	pub noi: WithFree<Noi>,
-	pub inner: Box<Subsentence>,
-	pub kuho: Option<Kuho>,
-	pub frees: Frees,
-}
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct Sumti3(
-	#[parse(with = "many0")] pub Box<[Sumti3ConnectedPre]>,
-	Sumti4,
+pub struct RelativeClauses<'arena>(
+	Separated<'arena, RelativeClause<'arena>, WithFree<'arena, Zihe<'arena>>>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Sumti3ConnectedPre(pub Gek, pub Sumti, pub Gik);
+pub enum RelativeClause<'arena> {
+	Goi(GoiRelativeClause<'arena>),
+	Noi(NoiRelativeClause<'arena>),
+}
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Sumti4 {
+pub struct GoiRelativeClause<'arena> {
+	pub goi: WithFree<'arena, Goi<'arena>>,
+	/// typical usage would match Arg::Sumti, but Arg::Tag is possible as well, such as in `la salis nesemau la betis cu se prami mi`
+	pub inner: Arg<'arena>,
+	pub gehu: Option<Gehu<'arena>>,
+	pub frees: Frees<'arena>,
+}
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct NoiRelativeClause<'arena> {
+	pub noi: WithFree<'arena, Noi<'arena>>,
+	pub inner: &'arena Subsentence<'arena>,
+	pub kuho: Option<Kuho<'arena>>,
+	pub frees: Frees<'arena>,
+}
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct Sumti3<'arena>(
+	#[parse(with = "many0")] pub &'arena [Sumti3ConnectedPre<'arena>],
+	Sumti4<'arena>,
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct Sumti3ConnectedPre<'arena>(pub Gek<'arena>, pub Sumti<'arena>, pub Gik<'arena>);
+
+#[derive(Debug, Parse, TreeNode)]
+pub enum Sumti4<'arena> {
 	Normal {
-		quantifier: Option<Quantifier>,
-		inner: Box<SumtiComponent>,
-		relative_clauses: Option<RelativeClauses>,
+		quantifier: Option<Quantifier<'arena>>,
+		inner: &'arena SumtiComponent<'arena>,
+		relative_clauses: Option<RelativeClauses<'arena>>,
 	},
 	SelbriShorthand {
-		quantifier: Quantifier,
-		inner: Selbri,
-		ku: Option<Ku>,
-		frees: Frees,
-		relative_clauses: Option<RelativeClauses>,
+		quantifier: Quantifier<'arena>,
+		inner: Selbri<'arena>,
+		ku: Option<Ku<'arena>>,
+		frees: Frees<'arena>,
+		relative_clauses: Option<RelativeClauses<'arena>>,
 	},
 }
 
 #[derive(Debug, Parse, TreeNode)] // similar to part of `mekso::Operand3`
-pub enum Quantifier {
-	Mekso(WithFree<Vei>, Mekso, Option<Veho>, Frees),
-	Number(Number, #[parse(not = "Moi")] Option<Boi>, Frees),
+pub enum Quantifier<'arena> {
+	Mekso(
+		WithFree<'arena, Vei<'arena>>,
+		Mekso<'arena>,
+		Option<Veho<'arena>>,
+		Frees<'arena>,
+	),
+	Number(
+		Number<'arena>,
+		#[parse(not = "Moi<'_>")] Option<Boi<'arena>>,
+		Frees<'arena>,
+	),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Number {
-	pub first: Pa,
+pub struct Number<'arena> {
+	pub first: Pa<'arena>,
 	#[parse(with = "many0")]
-	pub rest: Box<[NumberRest]>,
+	pub rest: &'arena [NumberRest<'arena>],
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum NumberRest {
-	Pa(Pa),
-	Lerfu(LerfuWord),
+pub enum NumberRest<'arena> {
+	Pa(Pa<'arena>),
+	Lerfu(LerfuWord<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct LerfuString {
-	pub first: LerfuWord,
+pub struct LerfuString<'arena> {
+	pub first: LerfuWord<'arena>,
 	#[parse(with = "many0")]
-	pub rest: Box<[NumberRest]>,
+	pub rest: &'arena [NumberRest<'arena>],
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct MiscNumbers(#[parse(with = "many1")] Box<[NumberRest]>);
+pub struct MiscNumbers<'arena>(#[parse(with = "many1")] &'arena [NumberRest<'arena>]);
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum LerfuWord {
-	Lerfu(Lerfu),
+pub enum LerfuWord<'arena> {
+	Lerfu(Lerfu<'arena>),
 	Lau {
-		lau: Lau,
-		lerfu: Lerfu,
+		lau: Lau<'arena>,
+		lerfu: Lerfu<'arena>,
 	},
 	Tei {
-		tei: Tei,
-		inner: Box<LerfuString>, // recursion avoided here
+		tei: Tei<'arena>,
+		inner: &'arena LerfuString<'arena>, // recursion avoided here
 		#[cut]
-		foi: Foi,
+		foi: Foi<'arena>,
 	},
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Lerfu {
+pub enum Lerfu<'arena> {
 	Bu(
 		Option<Bahe>,
 		BuLerfu,
-		#[parse(with = "many1")] Box<[Bu]>,
-		#[parse(with = "many0")] Box<[Indicators]>,
+		#[parse(with = "many1")] &'arena [Bu],
+		#[parse(with = "many0")] &'arena [Indicators<'arena>],
 	),
-	By(By),
+	By(By<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
@@ -634,39 +714,49 @@ pub enum Lerfu {
 )]
 pub struct BuLerfu(Token);
 
-pub type SumtiComponent = WithFree<SumtiComponent1>;
+pub type SumtiComponent<'arena> = WithFree<'arena, SumtiComponent1<'arena>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum SumtiComponent1 {
-	Koha(Koha),
-	Gadri(Box<GadriSumti>),
-	La(LaSumti),
-	Lohu(LohuSumti),
-	Lu(LuSumti),
-	Modified(ModifiedSumti),
-	LerfuString(LerfuString, #[parse(not = "Moi")] Option<Boi>),
+pub enum SumtiComponent1<'arena> {
+	Koha(Koha<'arena>),
+	Gadri(&'arena GadriSumti<'arena>),
+	La(LaSumti<'arena>),
+	Lohu(LohuSumti<'arena>),
+	Lu(LuSumti<'arena>),
+	Modified(ModifiedSumti<'arena>),
+	LerfuString(
+		LerfuString<'arena>,
+		#[parse(not = "Moi<'_>")] Option<Boi<'arena>>,
+	),
 	Zo(ZoSumti),
 	Zoi(ZoiSumti),
-	Li(WithFree<Li>, Mekso, Option<Loho>),
+	Li(
+		WithFree<'arena, Li<'arena>>,
+		Mekso<'arena>,
+		Option<Loho<'arena>>,
+	),
 }
 
 #[derive(Debug, TreeNode)]
-pub struct LohuSumti {
+pub struct LohuSumti<'arena> {
 	pub lohu: Lohu,
-	pub inner: Box<[Token]>,
-	pub lehu: Lehu,
+	pub inner: &'arena [Token],
+	pub lehu: Lehu<'arena>,
 }
 
-impl Parse for LohuSumti {
-	fn parse(input: &[Token]) -> ParseResult<'_, Self> {
+impl<'arena> Parse<'arena> for LohuSumti<'arena> {
+	fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> ParseResult<'a, Self> {
 		nom::combinator::map(
 			nom::sequence::tuple((
-				Parse::parse,
-				nom::combinator::cut(nom::multi::many_till(Parse::parse, Parse::parse)),
+				|input| Parse::parse(input, arena),
+				nom::combinator::cut(nom::multi::many_till(
+					|input| Parse::parse(input, arena),
+					|input| Parse::parse(input, arena),
+				)),
 			)),
 			|(lohu, (inner, lehu))| Self {
 				lohu,
-				inner: inner.into_boxed_slice(),
+				inner: arena.alloc_slice_fill_iter(inner.into_iter()),
 				lehu,
 			},
 		)(input)
@@ -674,67 +764,71 @@ impl Parse for LohuSumti {
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct LuSumti {
+pub struct LuSumti<'arena> {
 	pub lu: Lu,
-	pub text: Text,
-	pub lihu: Option<Lihu>,
+	pub text: Text<'arena>,
+	pub lihu: Option<Lihu<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct ModifiedSumti {
-	pub modifier: WithFree<SumtiModifier>,
-	pub relative_clauses: Option<RelativeClauses>,
-	pub sumti: Sumti,
-	pub luhu: Option<Luhu>,
+pub struct ModifiedSumti<'arena> {
+	pub modifier: WithFree<'arena, SumtiModifier<'arena>>,
+	pub relative_clauses: Option<RelativeClauses<'arena>>,
+	pub sumti: Sumti<'arena>,
+	pub luhu: Option<Luhu<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum SumtiModifier {
-	Lahe(Lahe),
-	NaheBo(Nahe, Bo),
+pub enum SumtiModifier<'arena> {
+	Lahe(Lahe<'arena>),
+	NaheBo(Nahe<'arena>, Bo<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct GadriSumti {
-	pub gadri: WithFree<Gadri>,
-	pub pre: GadriSumtiPre,
-	pub contents: GadriSumtiContents,
-	pub ku: Option<Ku>,
+pub struct GadriSumti<'arena> {
+	pub gadri: WithFree<'arena, Gadri<'arena>>,
+	pub pre: GadriSumtiPre<'arena>,
+	pub contents: GadriSumtiContents<'arena>,
+	pub ku: Option<Ku<'arena>>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Gadri {
-	Le(Le),
-	La(La),
+pub enum Gadri<'arena> {
+	Le(Le<'arena>),
+	La(La<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
 #[tree_node(passthrough_child)]
-pub enum GadriSumtiPre {
+pub enum GadriSumtiPre<'arena> {
 	// order is important here
 	Simple {
-		pe_shorthand: Option<Box<SumtiComponent>>, // recursion avoided here
-		relative_clauses: Option<RelativeClauses>,
+		pe_shorthand: Option<&'arena SumtiComponent<'arena>>, // recursion avoided here
+		relative_clauses: Option<RelativeClauses<'arena>>,
 	},
 	Relative {
-		relative_clauses: RelativeClauses,
+		relative_clauses: RelativeClauses<'arena>,
 	},
 	FullPre {
-		pe_shorthand: Box<Sumti>,
+		pe_shorthand: &'arena Sumti<'arena>,
 	},
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum GadriSumtiContents {
-	Selbri(Option<Quantifier>, Selbri, Option<RelativeClauses>),
-	Sumti(Quantifier, Sumti),
+pub enum GadriSumtiContents<'arena> {
+	Selbri(
+		Option<Quantifier<'arena>>,
+		Selbri<'arena>,
+		Option<RelativeClauses<'arena>>,
+	),
+	Sumti(Quantifier<'arena>, Sumti<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct LaSumti {
-	pub la: La,
+pub struct LaSumti<'arena> {
+	pub la: La<'arena>,
 	#[parse(with = "many1")]
-	pub inner: Box<[Cmevla]>,
+	pub inner: &'arena [Cmevla<'arena>],
 }
 
 #[derive(Debug, Parse, TreeNode)]
@@ -776,7 +870,6 @@ impl TreeNode for ZoiDelimiter {
 }
 
 #[derive(Debug, Parse)]
-#[repr(transparent)]
 pub struct ZoiText(Span);
 
 impl TreeNode for ZoiText {
@@ -800,65 +893,90 @@ impl TreeNode for ZoiText {
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Free {
-	Sei(WithFree<Sei>, Args, Option<SeiTail>, Option<WithFree<Sehu>>),
-	Soi(WithFree<Soi>, Box<(Sumti, Option<Sumti>)>, Option<Sehu>),
-	Vocative(Vocative),
-	Mai(MiscNumbers, Mai),
-	To(To, Text, Option<Toi>),
-	Xi(Subscript),
+pub enum Free<'arena> {
+	Sei(
+		WithFree<'arena, Sei<'arena>>,
+		Args<'arena>,
+		Option<SeiTail<'arena>>,
+		Option<WithFree<'arena, Sehu<'arena>>>,
+	),
+	Soi(
+		WithFree<'arena, Soi<'arena>>,
+		&'arena (Sumti<'arena>, Option<Sumti<'arena>>),
+		Option<Sehu<'arena>>,
+	),
+	Vocative(Vocative<'arena>),
+	Mai(MiscNumbers<'arena>, Mai<'arena>),
+	To(To<'arena>, Text<'arena>, Option<Toi<'arena>>),
+	Xi(Subscript<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Vocative(
-	pub VocativeWords,
-	pub Option<RelativeClauses>,
-	pub VocativeValue,
-	pub Option<RelativeClauses>,
-	pub Option<Dohu>,
+pub struct Vocative<'arena>(
+	pub VocativeWords<'arena>,
+	pub Option<RelativeClauses<'arena>>,
+	pub VocativeValue<'arena>,
+	pub Option<RelativeClauses<'arena>>,
+	pub Option<Dohu<'arena>>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct SeiTail(pub Option<Cu>, pub Frees, pub Selbri);
+pub struct SeiTail<'arena>(
+	pub Option<Cu<'arena>>,
+	pub Frees<'arena>,
+	pub Selbri<'arena>,
+);
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum VocativeWords {
+pub enum VocativeWords<'arena> {
 	Coi(
-		#[parse(with = "many1")] Box<[(Coi, Option<Nai>)]>,
-		Option<Doi>,
+		#[parse(with = "many1")] &'arena [(Coi<'arena>, Option<Nai<'arena>>)],
+		Option<Doi<'arena>>,
 	),
-	Doi(Doi),
+	Doi(Doi<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum VocativeValue {
-	Selbri(Box<Selbri>),
-	Cmevla(#[parse(with = "many1")] Box<[Cmevla]>),
-	Sumti(Option<Box<Sumti>>),
+pub enum VocativeValue<'arena> {
+	Selbri(&'arena Selbri<'arena>),
+	Cmevla(#[parse(with = "many1")] &'arena [Cmevla<'arena>]),
+	Sumti(Option<&'arena Sumti<'arena>>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Subscript(pub WithFree<Xi>, pub WithFree<SubscriptValue>);
+pub struct Subscript<'arena>(
+	pub WithFree<'arena, Xi<'arena>>,
+	pub WithFree<'arena, SubscriptValue<'arena>>,
+);
 
 #[derive(Debug, Parse, TreeNode)] // similar to part of `mekso::Operand3`
-pub enum SubscriptValue {
-	Mekso(WithFree<Vei>, Mekso, Option<Veho>, Frees),
-	Number(MiscNumbers, #[parse(not = "Moi")] Option<Boi>, Frees),
+pub enum SubscriptValue<'arena> {
+	Mekso(
+		WithFree<'arena, Vei<'arena>>,
+		Mekso<'arena>,
+		Option<Veho<'arena>>,
+		Frees<'arena>,
+	),
+	Number(
+		MiscNumbers<'arena>,
+		#[parse(not = "Moi<'_>")] Option<Boi<'arena>>,
+		Frees<'arena>,
+	),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Indicators(
-	pub Option<Fuhe>,
-	#[parse(with = "many1")] pub Box<[Indicator]>,
+pub struct Indicators<'arena>(
+	pub Option<Fuhe<'arena>>,
+	#[parse(with = "many1")] pub &'arena [Indicator<'arena>],
 );
 
 #[derive(Debug, Parse, TreeNode)]
 #[parse(not_after = "Bu")]
-pub enum Indicator {
-	Ui(Ui),
-	Cai(Cai),
-	Nai(Nai),
-	Daho(Daho),
-	Fuho(Fuho),
-	Y(Y),
+pub enum Indicator<'arena> {
+	Ui(Ui<'arena>),
+	Cai(Cai<'arena>),
+	Nai(Nai<'arena>),
+	Daho(Daho<'arena>),
+	Fuho(Fuho<'arena>),
+	Y(Y<'arena>),
 }

@@ -78,10 +78,12 @@ fn main() {
 		}
 
 		if args.cst {
-			match sneturfahi::Cst::parse(&lexed) {
+			let arena = sneturfahi::Arena::new();
+			match sneturfahi::Cst::parse(&lexed, &arena) {
 				Ok(cst) => print_tree_node(cst.root(), input, args.collapse_cst),
 				Err(error) => println!("Error: {error:?}"),
 			}
+			println!("size of CST arena: {}", arena.allocated_bytes());
 		}
 	});
 }

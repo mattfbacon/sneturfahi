@@ -4,6 +4,7 @@ name = "sneturfahi"
 version = "0.1.0"
 
 [dependencies]
+bumpalo = "3"
 log = "0.4"
 macros = { path = "macros" }
 nom = "7"

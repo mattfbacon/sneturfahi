@@ -38,7 +38,7 @@ pub mod lex;
 pub use lex::lex;
 
 pub mod parse;
-pub use parse::Cst;
+pub use parse::{Arena, Cst};
 
 pub mod span;
 pub use span::Span;

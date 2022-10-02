@@ -9,109 +9,178 @@ use super::{
 };
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Expression {
-	ReversePolish(WithFree<Fuha>, ReversePolish),
-	Normal(Separated<Separated<Expression1, (WithFree<Bihe>, Operator)>, Operator>),
+pub enum Expression<'arena> {
+	ReversePolish(WithFree<'arena, Fuha<'arena>>, ReversePolish<'arena>),
+	Normal(
+		Separated<
+			'arena,
+			Separated<'arena, Expression1<'arena>, (WithFree<'arena, Bihe<'arena>>, Operator<'arena>)>,
+			Operator<'arena>,
+		>,
+	),
 }
 
 // this representation is quite clunky and does not match the semantic hierarchy of the RP expression, but that's a problem for the AST.
 #[derive(Debug, Parse, TreeNode)]
-pub struct ReversePolish(pub Operand, #[parse(with = "many0")] pub Box<[RPTail]>);
+pub struct ReversePolish<'arena>(
+	pub Operand<'arena>,
+	#[parse(with = "many0")] pub &'arena [RPTail<'arena>],
+);
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct RPTail(pub ReversePolish, pub Operator);
+pub struct RPTail<'arena>(pub ReversePolish<'arena>, pub Operator<'arena>);
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Expression1 {
-	Operand(Operand),
-	Forethought(ForethoughtExpression),
+pub enum Expression1<'arena> {
+	Operand(Operand<'arena>),
+	Forethought(ForethoughtExpression<'arena>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct ForethoughtExpression {
-	pub peho: Option<WithFree<Peho>>,
-	pub operator: Operator,
+pub struct ForethoughtExpression<'arena> {
+	pub peho: Option<WithFree<'arena, Peho<'arena>>>,
+	pub operator: Operator<'arena>,
 	#[parse(with = "many1")]
-	pub operands: Box<[Expression1]>,
-	pub kuhe: Option<Kuhe>,
-	pub frees: Frees,
+	pub operands: &'arena [Expression1<'arena>],
+	pub kuhe: Option<Kuhe<'arena>>,
+	pub frees: Frees<'arena>,
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Operand(
-	pub Operand1,
-	#[parse(with = "many0")] pub Box<[ConnectedOperand]>,
+pub struct Operand<'arena>(
+	pub Operand1<'arena>,
+	#[parse(with = "many0")] pub &'arena [ConnectedOperand<'arena>],
 );
 
-pub type ConnectedOperand = SumtiLikeConnectedPost<Operand1, Operand>;
+pub type ConnectedOperand<'arena> =
+	SumtiLikeConnectedPost<'arena, Operand1<'arena>, Operand<'arena>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Operand1(pub Separated<Operand2, (JoikEk, Option<TagWords>, WithFree<Bo>)>);
-
-#[derive(Debug, Parse, TreeNode)]
-pub struct Operand2(
-	#[parse(with = "many0")] pub Box<[Operand2ConnectedPre]>,
-	pub Operand3,
+pub struct Operand1<'arena>(
+	pub  Separated<
+		'arena,
+		Operand2<'arena>,
+		(
+			JoikEk<'arena>,
+			Option<TagWords<'arena>>,
+			WithFree<'arena, Bo<'arena>>,
+		),
+	>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Operand2ConnectedPre(pub Gek, pub Operand, pub Gik);
+pub struct Operand2<'arena>(
+	#[parse(with = "many0")] pub &'arena [Operand2ConnectedPre<'arena>],
+	pub Operand3<'arena>,
+);
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Operand3 {
-	Nihe(WithFree<Nihe>, Selbri, Option<Tehu>, Frees),
-	Mohe(WithFree<Mohe>, Sumti, Option<Tehu>, Frees),
-	Johi(
-		WithFree<Johi>,
-		#[parse(with = "many1")] Box<[Expression1]>,
-		Option<Tehu>,
-		Frees,
+pub struct Operand2ConnectedPre<'arena>(pub Gek<'arena>, pub Operand<'arena>, pub Gik<'arena>);
+
+#[derive(Debug, Parse, TreeNode)]
+pub enum Operand3<'arena> {
+	Nihe(
+		WithFree<'arena, Nihe<'arena>>,
+		Selbri<'arena>,
+		Option<Tehu<'arena>>,
+		Frees<'arena>,
 	),
-	Modified(OperandModifier, Operand, Option<Luhu>),
-	Parenthesized(WithFree<Vei>, Expression, Option<Veho>, Frees),
-	Number(MiscNumbers, #[parse(not = "Moi")] Option<Boi>, Frees),
+	Mohe(
+		WithFree<'arena, Mohe<'arena>>,
+		Sumti<'arena>,
+		Option<Tehu<'arena>>,
+		Frees<'arena>,
+	),
+	Johi(
+		WithFree<'arena, Johi<'arena>>,
+		#[parse(with = "many1")] &'arena [Expression1<'arena>],
+		Option<Tehu<'arena>>,
+		Frees<'arena>,
+	),
+	Modified(
+		OperandModifier<'arena>,
+		Operand<'arena>,
+		Option<Luhu<'arena>>,
+	),
+	Parenthesized(
+		WithFree<'arena, Vei<'arena>>,
+		Expression<'arena>,
+		Option<Veho<'arena>>,
+		Frees<'arena>,
+	),
+	Number(
+		MiscNumbers<'arena>,
+		#[parse(not = "Moi<'_>")] Option<Boi<'arena>>,
+		Frees<'arena>,
+	),
 }
 
-pub type OperandModifier = SumtiModifier;
+pub type OperandModifier<'arena> = SumtiModifier<'arena>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Operator(
-	pub Operator1,
-	#[parse(with = "many0")] pub Box<[ConnectedOperator]>,
+pub struct Operator<'arena>(
+	pub Operator1<'arena>,
+	#[parse(with = "many0")] pub &'arena [ConnectedOperator<'arena>],
 );
 
-pub type ConnectedOperator = SelbriLikeConnectedPost<Operator1, Operator>;
+pub type ConnectedOperator<'arena> =
+	SelbriLikeConnectedPost<'arena, Operator1<'arena>, Operator<'arena>>;
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Operator1(
-	#[parse(with = "many0")] pub Box<[NaheGuhekTGik<Self>]>,
-	pub Operator2,
+pub struct Operator1<'arena>(
+	#[parse(with = "many0")] pub &'arena [NaheGuhekTGik<'arena, Self>],
+	pub Operator2<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct Operator2(pub Separated<Operator3, (JoikJek, Option<TagWords>, WithFree<Bo>)>);
+pub struct Operator2<'arena>(
+	pub  Separated<
+		'arena,
+		Operator3<'arena>,
+		(
+			JoikJek<'arena>,
+			Option<TagWords<'arena>>,
+			WithFree<'arena, Bo<'arena>>,
+		),
+	>,
+);
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum Operator3 {
-	Simple(OperatorComponent),
-	Grouped(WithFree<Ke>, Operator, Kehe, Frees),
+pub enum Operator3<'arena> {
+	Simple(OperatorComponent<'arena>),
+	Grouped(
+		WithFree<'arena, Ke<'arena>>,
+		Operator<'arena>,
+		Kehe<'arena>,
+		Frees<'arena>,
+	),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub struct OperatorComponent(
-	#[parse(with = "many0")] Box<[OperatorComponentPre]>,
-	OperatorComponent1,
+pub struct OperatorComponent<'arena>(
+	#[parse(with = "many0")] &'arena [OperatorComponentPre<'arena>],
+	OperatorComponent1<'arena>,
 );
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum OperatorComponentPre {
-	Nahe(WithFree<Nahe>),
-	Se(WithFree<Se>),
+pub enum OperatorComponentPre<'arena> {
+	Nahe(WithFree<'arena, Nahe<'arena>>),
+	Se(WithFree<'arena, Se<'arena>>),
 }
 
 #[derive(Debug, Parse, TreeNode)]
-pub enum OperatorComponent1 {
-	Maho(WithFree<Maho>, Expression, Option<Tehu>, Frees),
-	Nahu(WithFree<Nahu>, Selbri, Option<Tehu>, Frees),
-	Vuhu(WithFree<Vuhu>),
+pub enum OperatorComponent1<'arena> {
+	Maho(
+		WithFree<'arena, Maho<'arena>>,
+		Expression<'arena>,
+		Option<Tehu<'arena>>,
+		Frees<'arena>,
+	),
+	Nahu(
+		WithFree<'arena, Nahu<'arena>>,
+		Selbri<'arena>,
+		Option<Tehu<'arena>>,
+		Frees<'arena>,
+	),
+	Vuhu(WithFree<'arena, Vuhu<'arena>>),
 }

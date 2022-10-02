@@ -1,6 +1,7 @@
+use bumpalo::Bump as Arena;
 use macros::TreeNode;
 
-use super::helpers::many0;
+use super::helpers::{many0, PassArena};
 use super::Indicators;
 use crate::lex::{Selmaho, Token};
 use crate::parse::cst::error::{Error, WithLocation};
@@ -95,8 +96,8 @@ macro_rules! token_types {
 
 		impl SelmahoTypeRaw for $name {}
 
-		impl Parse for $name {
-			fn parse<'a>(input: &'a [Token]) -> ParseResult<'a, Self> {
+		impl<'arena> Parse<'arena> for $name {
+			fn parse<'a: 'arena>(input: &'a [Token], _: &Arena) -> ParseResult<'a, Self> {
 				selmaho_raw::<$name>(input)
 			}
 		}
@@ -125,18 +126,18 @@ macro_rules! token_types {
 		token_types!(@inner $name);
 
 		#[derive(Debug, TreeNode)]
-		pub struct $name {
-			pub bahe: Box<[Bahe]>,
+		pub struct $name<'arena> {
+			pub bahe: &'arena [Bahe],
 			pub inner: [<$name Inner>],
 		}
 
-		impl TryFrom<Token> for $name {
+		impl TryFrom<Token> for $name<'_> {
 			type Error = Error;
 
 			fn try_from(token: Token) -> Result<Self, Error> {
 				if token.selmaho == Selmaho::$name {
 					Ok(Self {
-						bahe: Box::new([]),
+						bahe: &[],
 						inner: [<$name Inner>] {
 							experimental: token.experimental,
 							span: token.span,
@@ -151,19 +152,21 @@ macro_rules! token_types {
 			}
 		}
 
-		impl TryFrom<Option<Token>> for $name {
+		impl TryFrom<Option<Token>> for $name<'_> {
 			type Error = Error;
 
 			fn try_from(token: Option<Token>) -> Result<Self, Error> {
 				token.ok_or(Error::ExpectedGot { expected: (&[Selmaho::$name] as &[Selmaho]).into(), got: None }).and_then(Self::try_from)
 			}
 		}
-		impl SelmahoTypeRaw for $name {}
 
-		impl Parse for $name {
-			fn parse<'a>(input: &'a [Token]) -> ParseResult<'a, Self> {
-				let (input, bahe) = nom::Parser::parse(&mut many0(Bahe::parse), input)?;
+		impl SelmahoTypeRaw for $name<'_> {}
+
+		impl<'arena> Parse<'arena> for $name<'arena> {
+			fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> ParseResult<'a, Self> {
+				let (input, bahe) = nom::Parser::parse(&mut many0(PassArena::<Bahe>::new(arena), arena), input)?;
 				let (input, mut matched) = selmaho_raw::<Self>(input)?;
+				let (input, ()) = nom::combinator::not(|input| Bu::parse(input, arena))(input)?;
 				matched.bahe = bahe;
 				Ok((input, matched))
 			}
@@ -173,19 +176,19 @@ macro_rules! token_types {
 		token_types!(@inner $name);
 
 		#[derive(Debug, TreeNode)]
-		pub struct $name {
-			pub bahe: Box<[Bahe]>,
+		pub struct $name<'arena> {
+			pub bahe: &'arena [Bahe],
 			pub inner: [<$name Inner>],
-			pub indicators: Option<Box<Indicators>>,
+			pub indicators: Option<&'arena Indicators<'arena>>,
 		}
 
-		impl TryFrom<Token> for $name {
+		impl TryFrom<Token> for $name<'_> {
 			type Error = Error;
 
 			fn try_from(token: Token) -> Result<Self, Error> {
 				if token.selmaho == Selmaho::$name {
 					Ok(Self {
-						bahe: Box::new([]),
+						bahe: &[],
 						inner: [<$name Inner>] {
 							experimental: token.experimental,
 							span: token.span,
@@ -201,20 +204,22 @@ macro_rules! token_types {
 			}
 		}
 
-		impl TryFrom<Option<Token>> for $name {
+		impl TryFrom<Option<Token>> for $name<'_> {
 			type Error = Error;
 
 			fn try_from(token: Option<Token>) -> Result<Self, Error> {
 				token.ok_or(Error::ExpectedGot { expected: (&[Selmaho::$name] as &[Selmaho]).into(), got: None }).and_then(Self::try_from)
 			}
 		}
-		impl SelmahoTypeRaw for $name {}
 
-		impl Parse for $name {
-			fn parse<'a>(input: &'a [Token]) -> ParseResult<'a, Self> {
-				let (input, bahe) = nom::Parser::parse(&mut many0(Bahe::parse), input)?;
+		impl SelmahoTypeRaw for $name<'_> {}
+
+		impl<'arena> Parse<'arena> for $name<'arena> {
+			fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> ParseResult<'a, Self> {
+				let (input, bahe) = nom::Parser::parse(&mut many0(PassArena::<Bahe>::new(arena), arena), input)?;
 				let (input, mut matched) = selmaho_raw::<Self>(input)?;
-				let (input, indicators) = <Option<Box<Indicators>>>::parse(input)?;
+				let (input, indicators) = <Option<&'arena Indicators<'arena>>>::parse(input, arena)?;
+				let (input, ()) = nom::combinator::not(|input| Bu::parse(input, arena))(input)?;
 				matched.bahe = bahe;
 				matched.indicators = indicators;
 				Ok((input, matched))

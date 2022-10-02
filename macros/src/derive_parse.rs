@@ -35,8 +35,6 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let mut input = parse_macro_input!(input as DeriveInput);
 
 	let name = input.ident;
-	add_trait_bounds(&mut input.generics);
-	let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
 	let body = implement_parse(&input.data, &input.attrs, &name);
 
@@ -44,30 +42,74 @@ pub fn derive_parse(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let result_path = paths::result();
 	let token_path = paths::token();
 	let assert_parse = quote_spanned! {Span::mixed_site()=>
-		fn assert_parse<T: #trait_path>() -> impl FnMut(&[#token_path]) -> #result_path<'_, T> {
+		fn assert_parse<'arena, 'a: 'arena, T: #trait_path<'arena>>() -> impl FnMut(&'a [#token_path], &'arena bumpalo::Bump) -> #result_path<'a, T> {
 			T::parse
 		}
 	};
 
-	quote! {
+	add_trait_bounds(&mut input.generics);
+
+	let ty_params = input.generics.params.iter().map(|param| match param {
+		GenericParam::Type(ty) => ty.ident.to_token_stream(),
+		GenericParam::Lifetime(lifetime) => lifetime.lifetime.to_token_stream(),
+		GenericParam::Const(const_) => const_.ident.to_token_stream(),
+	});
+	let ty_params = quote!(<#(#ty_params),*>);
+
+	for param in input.generics.type_params_mut() {
+		param.bounds.push(parse_quote!('arena));
+	}
+
+	let params = input.generics.params.iter();
+	let params_with_arena = if input
+		.generics
+		.lifetimes()
+		.any(|lifetime| lifetime.lifetime.ident == "arena")
+	{
+		quote!(<#(#params,)*>)
+	} else {
+		quote!(<'arena #(, #params)*>)
+	};
+
+	let code = quote! {
 		#[automatically_derived]
 		#[allow(unused_qualifications)]
-		impl #impl_generics #trait_path for #name #ty_generics #where_clause {
-			fn parse(input: &[#token_path]) -> #result_path<'_, Self> {
+		impl #params_with_arena #trait_path<'arena> for #name #ty_params {
+			fn parse<'a: 'arena>(input: &'a [#token_path], arena: &'arena bumpalo::Bump) -> #result_path<'a, Self> {
 				#assert_parse
 
 				#body
 			}
 		}
-	}
-	.into()
+	};
+
+	code.into()
+	/*
+	let code = code.to_string();
+	std::fs::create_dir_all("/tmp/derive-parse").unwrap();
+	let hash = {
+		use std::hash::Hasher as _;
+		let mut hasher = std::collections::hash_map::DefaultHasher::new();
+		hasher.write(code.as_bytes());
+		hasher.finish()
+	};
+	let path = format!("/tmp/derive-parse/code-{hash:016x}.rs");
+	std::fs::write(&path, code).unwrap();
+	std::process::Command::new("rustfmt")
+		.arg(&path)
+		.spawn()
+		.unwrap()
+		.wait()
+		.unwrap();
+	quote!(include!(#path);).into()
+	*/
 }
 
 fn add_trait_bounds(generics: &mut Generics) {
 	let trait_path = paths::trait_();
 	for param in &mut generics.params {
 		if let GenericParam::Type(type_param) = param {
-			type_param.bounds.push(parse_quote!(#trait_path));
+			type_param.bounds.push(parse_quote!(#trait_path<'arena>));
 		}
 	}
 }
@@ -77,7 +119,7 @@ fn implement_parse(data: &Data, attrs: &[Attribute], ident: &Ident) -> TokenStre
 
 	let trait_path = paths::trait_();
 	let inner = if let Some(with) = attrs.with {
-		quote_spanned!(with.span()=> nom::Parser::parse(&mut (#with)(#trait_path::parse), input))
+		quote_spanned!(with.span()=> nom::Parser::parse(&mut (#with)(|input| #trait_path::parse(input, arena), arena), input))
 	} else {
 		match data {
 			Data::Struct(data) => implement_struct(&data.fields, ident, attrs.must_consume, quote!(Self)),
@@ -188,7 +230,7 @@ fn implement_parse(data: &Data, attrs: &[Attribute], ident: &Ident) -> TokenStre
 		let after_nots = attrs.after_nots;
 		let after_nots = after_nots
 			.iter()
-			.map(|not| quote_spanned! {not.span() => nom::combinator::not(assert_parse::<#not>())});
+			.map(|not| quote_spanned! {not.span() => nom::combinator::not(|input| assert_parse::<'arena, 'a, #not>()(input, arena))});
 		quote! {
 			nom::combinator::map(
 				nom::sequence::tuple((
@@ -286,8 +328,8 @@ fn make_elements(i: &Punctuated<Field, Comma>) -> impl Iterator<Item = TokenStre
 		let ty_span = ty.span();
 
 		let inner = attrs.with.map_or_else(
-			|| quote_spanned!(ty_span=> assert_parse::<#ty>()),
-			|with| quote_spanned!(with.span()=> (#with)(#trait_path::parse)),
+			|| quote_spanned!(ty_span=> |input| assert_parse::<'arena, 'a, #ty>()(input, arena)),
+			|with| quote_spanned!(with.span()=> (#with)(|input| #trait_path::parse(input, arena), arena)),
 		);
 
 		let actual = if attrs.cut {
@@ -302,10 +344,10 @@ fn make_elements(i: &Punctuated<Field, Comma>) -> impl Iterator<Item = TokenStre
 			let idx = Index::from(nots.len());
 			let nots = nots
 				.iter()
-				.map(|not| quote_spanned!(not.span() => nom::combinator::not(assert_parse::<#not>())));
+				.map(|not| quote_spanned!(not.span() => nom::combinator::not(|input| assert_parse::<'arena, 'a, #not>()(input, arena))));
 			let after_nots = after_nots
 				.iter()
-				.map(|not| quote_spanned!(not.span() => nom::combinator:not(assert_parse::<#not>())));
+				.map(|not| quote_spanned!(not.span() => nom::combinator:not(|input| assert_parse::<'arena, 'a, #not>()(input, arena))));
 			quote! {
 				nom::combinator::map(
 					nom::sequence::tuple((

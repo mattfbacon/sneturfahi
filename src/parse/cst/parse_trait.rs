@@ -1,26 +1,31 @@
+use bumpalo::Bump as Arena;
+
 use crate::lex::Token;
 use crate::parse::cst::error::{Error, WithLocation};
 
 pub(in crate::parse::cst) type Result<'a, T> = nom::IResult<&'a [Token], T, WithLocation<'a>>;
 
-pub(in crate::parse::cst) trait Parse: Sized {
-	fn parse(input: &[Token]) -> Result<'_, Self>;
+pub(in crate::parse::cst) trait Parse<'arena>: Sized {
+	fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> Result<'a, Self>;
 }
 
-impl<T: Parse> Parse for Option<T> {
-	fn parse(input: &[Token]) -> Result<'_, Self> {
-		nom::combinator::opt(Parse::parse)(input)
+impl<'arena, T: Parse<'arena>> Parse<'arena> for Option<T> {
+	fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> Result<'a, Self> {
+		nom::combinator::opt(|input| Parse::parse(input, arena))(input)
 	}
 }
 
-impl<T: Parse> Parse for Box<T> {
-	fn parse(input: &[Token]) -> Result<'_, Self> {
-		nom::combinator::map(Parse::parse, Box::new)(input)
+impl<'arena, T: Parse<'arena>> Parse<'arena> for &'arena T {
+	fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> Result<'a, Self> {
+		nom::combinator::map(
+			|input| Parse::parse(input, arena),
+			|parsed| &*arena.alloc(parsed),
+		)(input)
 	}
 }
 
-impl Parse for Token {
-	fn parse(input: &[Token]) -> Result<'_, Self> {
+impl<'arena> Parse<'arena> for Token {
+	fn parse<'a: 'arena>(input: &'a [Token], _: &'arena Arena) -> Result<'a, Self> {
 		let mut input = input.iter();
 		input
 			.next()
@@ -32,9 +37,9 @@ impl Parse for Token {
 	}
 }
 
-impl Parse for crate::Span {
-	fn parse(input: &[Token]) -> Result<'_, Self> {
-		Token::parse(input).map(|(rest, matched)| (rest, matched.span))
+impl<'arena> Parse<'arena> for crate::Span {
+	fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> Result<'a, Self> {
+		Token::parse(input, arena).map(|(rest, matched)| (rest, matched.span))
 	}
 }
 
@@ -42,9 +47,9 @@ macro_rules! tuple_impls {
 	// base case
 	() => {};
 	(@single $($idents:ident),*) => {
-		impl<$($idents: Parse),*> Parse for ($($idents,)*) {
-			fn parse(input: &[Token]) -> Result<'_, Self> {
-				nom::sequence::tuple(($(<$idents as Parse>::parse,)*))(input)
+		impl<'arena, $($idents: Parse<'arena>),*> Parse<'arena> for ($($idents,)*) {
+			fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> Result<'a, Self> {
+				nom::sequence::tuple(($(|input| <$idents as Parse>::parse(input, arena),)*))(input)
 			}
 		}
 	};

@@ -116,24 +116,28 @@ impl<T: TreeNode> TreeNodeChild for T {
 }
 
 macro_rules! box_impl {
-	(($($generics:ident),*) => $ty:ty) => {
-		impl<$($generics: TreeNodeChild),*> TreeNodeChild for Box<$ty> {
+	(@actual ($($generics:ident),*), $actual:ty, $ty:ty) => {
+		impl<$($generics: TreeNodeChild),*> TreeNodeChild for $ty {
 			fn invoke_with_self<'a>(&'a self, f: &mut dyn FnMut(&'a dyn TreeNode)) {
-				<$ty>::invoke_with_self(self, f)
+				<$actual>::invoke_with_self(self, f)
 			}
 
 			fn experimental(&self) -> bool {
-				<$ty>::experimental(self)
+				<$actual>::experimental(self)
 			}
 
 			fn start_location(&self) -> Option<Location> {
-				<$ty>::start_location(self)
+				<$actual>::start_location(self)
 			}
 
 			fn end_location(&self) -> Option<Location> {
-				<$ty>::end_location(self)
+				<$actual>::end_location(self)
 			}
 		}
+	};
+	(($($generics:ident),*) => $ty:ty) => {
+		box_impl!(@actual ($($generics),*), $ty, Box<$ty>);
+		box_impl!(@actual ($($generics),*), $ty, &'_ $ty);
 	};
 }
 pub(in crate::parse) use box_impl;

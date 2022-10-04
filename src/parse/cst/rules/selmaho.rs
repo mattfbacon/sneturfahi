@@ -97,8 +97,11 @@ macro_rules! token_types {
 		impl SelmahoTypeRaw for $name {}
 
 		impl<'arena> Parse<'arena> for $name {
-			fn parse<'a: 'arena>(input: &'a [Token], _: &Arena) -> ParseResult<'a, Self> {
-				selmaho_raw::<$name>(input)
+			fn parse<'a: 'arena>(input: &'a [Token], arena: &Arena) -> ParseResult<'a, Self> {
+				let (input, value) = selmaho_raw::<$name>(input)?;
+				let (_, ()) = nom::combinator::not(|input| Bu::parse(input, arena))(input)?;
+				let (_, ()) = nom::combinator::not(|input| Zei::parse(input, arena))(input)?;
+				Ok((input, value))
 			}
 		}
 
@@ -166,7 +169,8 @@ macro_rules! token_types {
 			fn parse<'a: 'arena>(input: &'a [Token], arena: &'arena Arena) -> ParseResult<'a, Self> {
 				let (input, bahe) = nom::Parser::parse(&mut many0(PassArena::<Bahe>::new(arena), arena), input)?;
 				let (input, mut matched) = selmaho_raw::<Self>(input)?;
-				let (input, ()) = nom::combinator::not(|input| Bu::parse(input, arena))(input)?;
+				let (_, ()) = nom::combinator::not(|input| Bu::parse(input, arena))(input)?;
+				let (_, ()) = nom::combinator::not(|input| Zei::parse(input, arena))(input)?;
 				matched.bahe = bahe;
 				Ok((input, matched))
 			}
@@ -219,7 +223,8 @@ macro_rules! token_types {
 				let (input, bahe) = nom::Parser::parse(&mut many0(PassArena::<Bahe>::new(arena), arena), input)?;
 				let (input, mut matched) = selmaho_raw::<Self>(input)?;
 				let (input, indicators) = <Option<&'arena Indicators<'arena>>>::parse(input, arena)?;
-				let (input, ()) = nom::combinator::not(|input| Bu::parse(input, arena))(input)?;
+				let (_, ()) = nom::combinator::not(|input| Bu::parse(input, arena))(input)?;
+				let (_, ()) = nom::combinator::not(|input| Zei::parse(input, arena))(input)?;
 				matched.bahe = bahe;
 				matched.indicators = indicators;
 				Ok((input, matched))
@@ -252,7 +257,6 @@ token_types! {
 	Bihi,
 	Bo,
 	Boi,
-	#[raw] Bu,
 	By,
 	Caha,
 	Cai,
@@ -359,9 +363,75 @@ token_types! {
 	Y,
 	Zaho,
 	Zeha,
+	#[no_indicators] Zei,
 	Zi,
 	Zihe,
 	#[raw] Zo,
 	Zohu,
 	#[raw] Zoi,
+}
+
+#[derive(Debug)]
+pub struct Bu {
+	pub experimental: bool,
+	pub span: Span,
+}
+
+impl TryFrom<Token> for Bu {
+	type Error = Error;
+
+	fn try_from(token: Token) -> Result<Self, Error> {
+		if token.selmaho == Selmaho::Bu {
+			Ok(Self {
+				experimental: token.experimental,
+				span: token.span,
+			})
+		} else {
+			Err(Error::ExpectedGot {
+				expected: (&[Selmaho::Bu] as &[Selmaho]).into(),
+				got: Some(token),
+			})
+		}
+	}
+}
+
+impl TryFrom<Option<Token>> for Bu {
+	type Error = Error;
+
+	fn try_from(token: Option<Token>) -> Result<Self, Error> {
+		token
+			.ok_or(Error::ExpectedGot {
+				expected: (&[Selmaho::Bu] as &[Selmaho]).into(),
+				got: None,
+			})
+			.and_then(Self::try_from)
+	}
+}
+
+impl SelmahoTypeRaw for Bu {}
+
+impl<'arena> Parse<'arena> for Bu {
+	fn parse<'a: 'arena>(input: &'a [Token], _: &Arena) -> ParseResult<'a, Self> {
+		selmaho_raw::<Bu>(input)
+	}
+}
+
+impl TreeNode for Bu {
+	fn name(&self) -> &'static str {
+		Selmaho::Bu.as_repr()
+	}
+
+	fn experimental(&self) -> bool {
+		self.experimental
+	}
+
+	fn start_location(&self) -> Option<Location> {
+		Some(self.span.start)
+	}
+
+	fn end_location(&self) -> Option<Location> {
+		Some(self.span.end)
+	}
+
+	fn for_each_child<'a>(&'a self, _: &mut dyn FnMut(&'a dyn TreeNode)) {}
 }

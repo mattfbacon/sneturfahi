@@ -406,6 +406,7 @@ pub enum TanruUnit2<'arena> {
 	Gismu(WithFree<'arena, Gismu<'arena>>),
 	Lujvo(WithFree<'arena, Lujvo<'arena>>),
 	Fuhivla(WithFree<'arena, Fuhivla<'arena>>),
+	Zei(WithFree<'arena, ZeiClause<'arena>>),
 	Goha {
 		goha: Goha<'arena>,
 		raho: Option<Raho<'arena>>,
@@ -429,6 +430,34 @@ pub enum TanruUnit2<'arena> {
 		nuha: WithFree<'arena, Nuha<'arena>>,
 		operator: MeksoOperator<'arena>,
 	},
+}
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct ZeiClause<'arena>(
+	#[parse(with = "many0")] pub &'arena [Bahe],
+	pub BuInner,
+	#[parse(with = "many0")] pub &'arena [ZeiBuInner<'arena>],
+	pub ZeiTail<'arena>,
+	#[parse(not = "Zei<'_>", not = "Bu")] pub Option<&'arena Indicators<'arena>>,
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct ZeiBuInner<'arena>(
+	pub Option<ZeiTail<'arena>>,
+	#[parse(with = "many1")] pub &'arena [Bu],
+);
+
+#[derive(Debug, Parse, TreeNode)]
+pub struct ZeiTail<'arena>(#[parse(with = "many1")] pub &'arena [(Zei<'arena>, Token)]);
+
+#[test]
+fn test_zei_clause() {
+	let arena = Arena::new();
+	let tokens = crate::lex("ko'a zei ko'a")
+		.collect::<Result<Vec<_>, _>>()
+		.unwrap();
+	let (rest, _) = ZeiClause::parse(&tokens, &arena).unwrap();
+	assert_eq!(rest, &[]);
 }
 
 #[derive(Debug, Parse, TreeNode)]
@@ -701,7 +730,7 @@ pub enum LerfuWord<'arena> {
 pub enum Lerfu<'arena> {
 	Bu(
 		Option<Bahe>,
-		BuLerfu,
+		BuInner,
 		#[parse(with = "many1")] &'arena [Bu],
 		#[parse(with = "many0")] &'arena [Indicators<'arena>],
 	),
@@ -712,7 +741,7 @@ pub enum Lerfu<'arena> {
 #[parse(
 	postcond = "|Self(token)| !matches!(token.selmaho, Selmaho::Bu | Selmaho::Zei | Selmaho::Si | Selmaho::Su | Selmaho::Sa | Selmaho::Faho)"
 )]
-pub struct BuLerfu(Token);
+pub struct BuInner(Token);
 
 pub type SumtiComponent<'arena> = WithFree<'arena, SumtiComponent1<'arena>>;
 

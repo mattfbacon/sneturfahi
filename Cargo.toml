@@ -17,6 +17,3 @@ atty = "0.2"
 macros = { path = "macros", features = ["make-assert-parse-test"] }
 parse-display = "0.6"
 simplelog = "0.12"
-
-[features]
-type-alias-impl-trait = []

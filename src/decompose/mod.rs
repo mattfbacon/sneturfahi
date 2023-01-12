@@ -123,7 +123,9 @@ impl<'input> Iterator for Decomposer<'input> {
 			}
 
 			// possibly exit loop with `None` (via `?`)
-			let next_chunk = self.chunks.find(|chunk| !chunk.is_empty())?;
+			let next_chunk = self
+				.chunks
+				.find(|chunk| !chunk.is_empty() && !chunk.bytes().all(|ch| ch == b','))?;
 			let offset =
 				Location::try_from(next_chunk.as_ptr() as usize - self.input.as_ptr() as usize).unwrap();
 			let mut chunk_words = decompose_single(next_chunk);
@@ -423,8 +425,8 @@ mod test {
 		cmevla_tricky: "alobrodan" => ["alobrodan"],
 		cmevla_tricky2: "zo alobrodan alobroda zo" => ["zo", "alobrodan", "a", "lo", "broda", "zo"],
 		commas: ",,,m,,,i,,,n,,a,,,j,,,i,,,m,,,p,,,e,,," => [",,,m,,,i", ",,,n,,a", ",,,j,,,i,,,m,,,p,,,e"],
-		// dont_blow_the_stack: ten_to_the_n_commas!(5) => [],
-		// srasu: include_str!("../srasu.txt") => include!("srasu.txt.expected"),
+		dont_blow_the_stack: ten_to_the_n_commas!(5) => [],
+		srasu: include_str!("../srasu.txt") => include!("srasu.txt.expected"),
 		vrudysai: "coiiiii" => ["coi", "ii", "ii"],
 		janbe: "tanjelavi" => ["tanjelavi"],
 		thrig: "mablabigerku" => ["ma", "blabigerku"],
